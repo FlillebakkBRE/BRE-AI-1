@@ -6,3 +6,4 @@
 - [Lead-radar Doffin](lead-radar-doffin.md) — Doffin IoT-søk (ekte API) bygget inn i morgenbriefen, script i workspace/lead-radar/doffin.py
 - [O365-integrasjon](o365-integrasjon.md) — planlagt Graph MCP (kalender→e-post) i morgenbriefen, venter på IT/Entra-oppsett
 - [Git-backup](git-backup.md) — workspace-skript pushes til privat GitHub FlillebakkBRE/BRE-AI-1 via SSH deploy key
+- [Salg-pipeline](salg-pipeline.md) — salgsdiagnose + roadmap; pipeline-helse i morgenbrief gjort, neste: e-sign, tilbud-gen, lead-capture
