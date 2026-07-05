@@ -44,8 +44,47 @@ def load_seen():
 def save_seen(seen):
     json.dump(sorted(seen), open(SEEN_FILE, "w"))
 
+ICP_THRESHOLD = 70  # score >= dette => foreslå auto-fangst som deal
+
+# BRE Digital ICP: landbasert industri + offentlig sektor, IoT/sensor/automasjon/energi/VA
+ICP_KEYWORDS = ["iot", "sensor", "sensorikk", "tilstandsovervåking", "fjernovervåking",
+    "sensorovervåking", "energiovervåking", "energiledelse", "energioppfølging", "eos",
+    "trådløse sensorer", "sd-anlegg", "byggautomasjon", "va-telemetri", "vannmåler",
+    "telemetri", "scada", "automasjon", "digital tvilling", "prediktivt vedlikehold",
+    "overvåking", "fjernavlesning", "smart bygg"]
+PUBLIC_HINTS = ["kommune", "fylkeskommune", "sykehus", "helse", "interkommunal",
+    "innkjøpssamarbeid", "statsbygg", "etat", "direktorat", "universitet", "høgskole"]
+NEGATIVE = ["fluorometer", "forskningsinstrument", "instrument til forskning",
+    "matvarer", "renhold", "kantine", "møbler", "transporttjenester", "vikartjenester"]
+
+def score_icp(h):
+    hay = ((h.get("heading") or "") + " " + (h.get("description") or "")).lower()
+    buyer = ((h.get("buyer") or [{}])[0].get("name") or "").lower()
+    score, reasons = 0, []
+    kw = [k for k in ICP_KEYWORDS if k in hay]
+    if kw:
+        pts = min(45, 15 * len(kw)); score += pts
+        reasons.append(f"nøkkelord: {', '.join(kw[:4])} (+{pts})")
+    if any(p in buyer for p in PUBLIC_HINTS):
+        score += 25; reasons.append("offentlig oppdragsgiver (+25)")
+    else:
+        score += 10; reasons.append("privat/industri (+10)")
+    val = (h.get("estimatedValue") or {}).get("amount")
+    if isinstance(val, (int, float)):
+        if val >= 5_000_000: score += 15; reasons.append("verdi ≥5M (+15)")
+        elif val >= 1_000_000: score += 10; reasons.append("verdi 1–5M (+10)")
+        else: score += 5; reasons.append("verdi <1M (+5)")
+    t = (h.get("type") or "").lower()
+    if any(w in (t + " " + hay) for w in ["rammeavtale", "dynamisk", "dps"]):
+        score += 15; reasons.append("rammeavtale/DPS (+15)")
+    if any(n in hay for n in NEGATIVE):
+        score -= 30; reasons.append("mulig irrelevant (−30)")
+    score = max(0, min(100, score))
+    return score, reasons
+
 def slim(h):
     val = h.get("estimatedValue") or {}
+    icp, reasons = score_icp(h)
     return {
         "id": h.get("id"),
         "heading": h.get("heading"),
@@ -57,6 +96,9 @@ def slim(h):
         "currency": val.get("currencyCode"),
         "type": h.get("type"),
         "url": f"https://doffin.no/nb/notices/{h.get('id')}",
+        "icpScore": icp,
+        "icpReasons": reasons,
+        "capture": icp >= ICP_THRESHOLD,
     }
 
 def main():
@@ -98,6 +140,7 @@ def main():
     out = {
         "totalScanned": len(hits),
         "newCount": len(new_items),
+        "captureCount": sum(1 for x in new_items if x["capture"]),
         "new": new_items,
         "activeCount": len(active),
         "active": active[:15],
