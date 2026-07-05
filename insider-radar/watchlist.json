@@ -1,0 +1,11 @@
+{
+  "_comment": "Navn/tickere som ALLTID varsler i insider-radaren, uansett beløp. Match: 'tickers' mot issuerSign, 'names' som delstreng i meldingsteksten (case-insensitivt). Rediger fritt.",
+  "tickers": ["DNB"],
+  "names": [
+    "Gro Bakstad",
+    "Lars Røsæg",
+    "Jøtul Invest",
+    "Tore Tønseth",
+    "Ronja Capital"
+  ]
+}
