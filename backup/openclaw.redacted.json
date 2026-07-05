@@ -1,0 +1,139 @@
+{
+  "gateway": {
+    "auth": {
+      "mode": "token",
+      "token": "<REDACTED>"
+    },
+    "mode": "local",
+    "port": 18789,
+    "bind": "loopback",
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "controlUi": {
+      "allowInsecureAuth": true
+    }
+  },
+  "wizard": {
+    "lastRunAt": "2026-06-23T15:47:51.847Z",
+    "lastRunVersion": "2026.6.9",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local"
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.6.9",
+    "lastTouchedAt": "2026-07-03T06:48:34.481Z"
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/Users/breai1/.openclaw/workspace",
+      "models": {
+        "anthropic/claude-opus-4-8": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-opus-4-7": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-sonnet-4-6": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        },
+        "anthropic/claude-opus-4-6": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        }
+      },
+      "model": {
+        "primary": "anthropic/claude-opus-4-8"
+      }
+    }
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "search": {
+        "provider": "brave",
+        "maxResults": 5,
+        "timeoutSeconds": 30
+      }
+    }
+  },
+  "plugins": {
+    "entries": {
+      "anthropic": {
+        "enabled": true
+      },
+      "telegram": {
+        "enabled": true
+      },
+      "memory-core": {
+        "config": {}
+      },
+      "brave": {
+        "config": {
+          "webSearch": {
+            "apiKey": "<REDACTED>",
+            "mode": "web"
+          }
+        },
+        "enabled": true
+      }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "anthropic:claude-cli": {
+        "provider": "claude-cli",
+        "mode": "oauth"
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "groups": {
+        "*": {
+          "requireMention": true
+        }
+      },
+      "botToken": "<REDACTED>"
+    }
+  },
+  "commands": {
+    "ownerAllowFrom": [
+      "telegram:8932966538"
+    ]
+  },
+  "mcp": {
+    "servers": {
+      "diakonhjemmet": {
+        "url": "https://mcp.diakonhjemmet.brecloud.no/mcp",
+        "transport": "streamable-http",
+        "auth": "oauth",
+        "oauth": {
+          "scope": "mcp:access offline_access"
+        }
+      },
+      "hubspot": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@hubspot/mcp-server"
+        ],
+        "env": {
+          "PRIVATE_APP_ACCESS_TOKEN": "<REDACTED>"
+        }
+      }
+    }
+  }
+}

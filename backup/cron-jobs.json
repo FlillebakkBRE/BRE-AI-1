@@ -1,0 +1,32 @@
+{
+  "_comment": "Eksport av OpenClaw cron-jobber (fra state/openclaw.sqlite) for backup/gjenoppretting. Gjenopprett med cron-verktøyet action=add. Oppdateres av backup/backup.sh-automatikken.",
+  "exportedContext": "BRE Digital / Frode Lillebakk",
+  "jobs": [
+    {
+      "name": "Morgen-brief BRE Digital",
+      "description": "Daglig morgenoppsummering til Frode kl 07:00 på hverdager",
+      "agentId": "main",
+      "sessionKey": "agent:main:telegram:direct:8932966538",
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "schedule": { "kind": "cron", "expr": "0 7 * * 1-5", "tz": "Europe/Oslo" },
+      "payload": {
+        "kind": "systemEvent",
+        "text": "MORGEN-BRIEF: Lag og send Frode en kort daglig morgenoppsummering (planlagt daglig påminnelse). Bruk web_search/web_fetch, skript og MCP-verktøy. Hold det stramt, norsk, punktvis, med kildelenker. Hopp over tomme seksjoner. Bransjefokus: LANDBASERT INDUSTRI og OFFENTLIG SEKTOR. Seksjoner: 1) LEAD-RADAR: a) DOFFIN — kjør python3 /Users/breai1/.openclaw/workspace/lead-radar/doffin.py (autoritativ Doffin-kilde, IKKE web_search for Doffin). Fremhev NYE, så AKTIVE muligheter. b) Mercell + LinkedIn via web_search. 2) INVESTOR-RADAR (Spetalen/Tveitereid/Fredly, Newsweb/E24). 3) LEVERANDØR-RADAR (Efento, IXON, Kunbus, Digital Matter, Phoenix Contact, Enless). 4) KONKURRENT-RADAR (Etero, Piscada, Clarify, El-Watch, Axbit, Nivero, Gapit, Digel). 5) Bransjenyheter. 6) Industriell IoT. 7) NIS2/digitalsikkerhetsloven. 8) Tilskudd (EIC/Horizon, SkatteFUNN, Innovasjon Norge, Enova). 9) HUBSPOT-FRISTER (mcp__hubspot__*). 10) DIAKONHJEMMET BATTERI (mcp__diakonhjemmet__*, bucket Battery). 11) Vær Eide/Molde. NB: full/kanonisk payload ligger i live cron-jobb; denne er backup-sammendrag."
+      }
+    },
+    {
+      "name": "Insider-radar Oslo Børs",
+      "description": "Daglig innsidehandel-radar (meldepliktig handel primærinnsidere) til Frode kl 07:10 hverdager. Læringsfokus.",
+      "agentId": "main",
+      "sessionKey": "agent:main:telegram:direct:8932966538",
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "schedule": { "kind": "cron", "expr": "10 7 * * 1-5", "tz": "Europe/Oslo" },
+      "payload": {
+        "kind": "systemEvent",
+        "text": "INSIDER-RADAR: Kjør python3 /Users/breai1/.openclaw/workspace/insider-radar/fetch.py --days 3 (Newsweb kat.1102, NO/EN-dedup, watchlist-flagging). Parse hver melding: kjøp/salg, navn, rolle, selskap, antall, kurs, verdi. ⭐ WATCHLIST øverst (alle treff uansett beløp, skill konviksjonskjøp fra program/opsjon). Ellers fremhev KJØP > 500 000 kr; utelat opsjons-/RSU-tildelinger + emisjoner. Læringsfokus: én setning om hvorfor hvert kjøp betyr noe. Norsk, punktvis, newsweb-lenke. NB: full/kanonisk payload ligger i live cron-jobb; denne er backup-sammendrag."
+      }
+    }
+  ]
+}

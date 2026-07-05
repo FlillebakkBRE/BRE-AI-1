@@ -1,0 +1,31 @@
+---
+name: daglig-morgen-brief
+description: Standing daily morning brief cron job set up for Frode
+metadata: 
+  node_type: memory
+  type: project
+  originSessionId: cab12b21-5815-463f-83a6-c50ac6daf2cd
+---
+
+Cron-jobb «Morgen-brief BRE Digital» (id `93c12194-521e-45a4-a8a5-0955519c4348`) leverer daglig oppsummering til Frode på Telegram **hverdager kl. 07:00 Europe/Oslo** (opprettet 2026-07-02, første kjøring fre 3. juli 2026).
+
+Innhold: **lead-radar (topp-prioritet)** — scanner Doffin + Mercell + LinkedIn etter oppdrag/aktører (oppdragsgiver + frist + lenke). Søkeemner: NIS2/digitalsikkerhet/informasjonssikkerhet/sikkerhetsrådgivning, IoT/industriell IoT/sensorikk/sensorovervåking/trådløse sensorer/fjernovervåking/SCADA/automasjon, digitalisering, prediktivt vedlikehold, tilstandsovervåking, energiovervåking/energiledelse, digital tvilling, byggautomasjon/SD-anlegg, VA-telemetri, systemintegrasjon. Deretter: bransjenyheter (landbasert industri + offentlig sektor), industriell IoT, NIS2/digitalsikkerhetsloven i Norge, investor-/innsidehandel-radar (Spetalen/Tycoon, Tveitereid, Fredly via Oslo Børs Newsweb/E24/bjellesauene), nøkkelord (konkurrenter + tilskudd: EIC/Horizon/SkatteFUNN/Innovasjon Norge/Enova), vær Eide/Molde, frister. Norsk, punktvis, med kildelenker; hopper over tomme seksjoner.
+
+**HubSpot MCP koblet til (2026-07-02, VIRKER):** lokal stdio-server `@hubspot/mcp-server` (npx) med gyldig **Private App-token (pat-eu1-…, eldre privat app)**, registrert i openclaw.json som MCP-server `hubspot`. Verifisert med ekte API-kall (owner-id Frode = 89064005; 26 åpne tasks hentet). Brukes til «Frister/oppfølginger». Læring: remote OAuth (mcp.hubspot.com/anthropic) fungerte IKKE (ingen dynamic client registration), og `probe` som viser «21 verktøy» beviser IKKE at token er gyldig – kun at serveren startet. Private Apps ligger nå under «Eldre apper» i HubSpot. Merk: token i klartekst i config; vurder env-variabel `${PRIVATE_APP_ACCESS_TOKEN}`. MCP-verktøy (mcp__hubspot__*) blir tilgjengelige for agenten ved neste runtime-bygg (bl.a. cron-briefen).
+
+**Diakonhjemmet MCP koblet til (2026-07-02, OAuth):** Frodes egen «BRE Cloud MCP Console» (https://mcp.diakonhjemmet.brecloud.no/mcp) – InfluxDB-data (Battery/Generator/Water m.m.). Registrert som MCP-server `diakonhjemmet` i openclaw.json med `auth: oauth` (scope `mcp:access offline_access`). Serveren støtter dynamic client registration + refresh-token = varig kobling. Verktøy: `describe_schema`, `query_influx`. Grafana (samme kunde, https://diakonhjemmet.brecloud.no) kan også nås direkte via service-account-token + /render for panelbilder (Docker mangler p.t. på Mac mini for offisiell Grafana-MCP). Læring: web-konsollen bruker Entra ID/NextAuth-cookie, men /mcp bruker egen OAuth (RFC 9728 protected resource) – cookie funker ikke mot /mcp.
+
+Batteri-baseline (2026-07-02, Diakonhjemmet/Steinerud): **462.28 String3 (B/kjeller) = versting** – Resistance Percent Increase +118 % over baseline, +18pp siste 90d, høyest Max Resistance (10,7). Følg: 462.28 String1 (+34 %). Friskt: 462.01 String1 (−19 %). Datakvalitet: 462.27 String1/2 (E) gir urealistiske/negative verdier – må feltsjekkes. «Battery Available Power Percent» leser 0 (ikke loggført?). Serveren capper query til 90 dager per kall.
+
+**Åpne oppfølginger (per 2026-07-02 kveld):**
+- **MS Teams-kanal:** Frode ordner Entra/M365-app selv (Teams-CLI + devtunnel + `teams app create`). Når han sender CLIENT_ID/CLIENT_SECRET/TENANT_ID + tunnel-URL → jeg legger inn `channels.msteams` i openclaw.json, restart, verifiser. Teams er innebygd plugin i OpenClaw.
+- **Månedsrapport:** eksempel-PDF laget (matplotlib+reportlab, med batteritrend-graf). Ikke automatisert ennå – skal settes opp 1. hver måned + e-post (Node-RED/SMTP/Graph) når Frode velger metode. Ekte BRE-logo mangler (Frode sender PNG/SVG).
+- **Rapport-stack videre:** HTML/CSS→Playwright anbefalt for kundevendte rapporter (i DGX-fasen).
+- **Branding/white-label:** PWA på app.bredigital.no (rask «BRE-app»-følelse) + utrede ekte native white-label + SJEKK OpenClaw lisensvilkår for videresalg før kundeprodukt.
+- **Mybring (Bring frakt-API):** legitimasjon validert 2026-07-02 (UID = frode.lillebakk@bredigital.no + API-nøkkel; ligger i chatten/skal legges i env). Shipping Guide v2 svarer OK (api.bring.com, headere X-MyBring-API-Uid/X-MyBring-API-Key). Kundenr./ApiCustomerNumber = 10040902495 (BRE DIGITAL AS) mottatt. Auth+kundenr. godtatt av Shipping Guide v2, men prisfeltene i responsen ligger annerledes nøstet enn antatt – finn riktig sti (evt. dump rå JSON) når integrasjonen bygges. Bygg integrasjon: sporing + fraktguide (+ evt. booking), koble mot HubSpot-deals. Ikke lagt i openclaw.json ennå.
+- **O365/Microsoft Graph:** Frode vil koble på. Delegert flyt, Entra-app (kan tas sammen med Teams), scopes Mail.Send/Mail.Read/Calendars.Read/Files.Read + admin-samtykke. Låser opp e-postutsending av rapporter + kalender/innboks i brief. Tas sammen med Teams (én Entra-jobb).
+- **Leverandør-innkjøp (Onninen + Phoenix Contact):** ikke selvbetjent API – mest EDI/OCI-PunchOut, krever konto-/gateway-credentials fra leverandør. Onninen: onninen.no/edi + /punch-out. Phoenix: punchout.phoenixcontact.com/gateway/v1/oci (+ PLCnext-API/OPC UA for automasjonsdata – mer relevant for IoT enn innkjøp). Frode ønsker utkast til henvendelse. Større løft, DGX-fase.
+- **LinkedIn:** posting gjøres MANUELT inntil videre (ikke API). Overvåking av LinkedIn/innhold gjøres via web-søk i briefen – ingen API nødvendig. Lagt inn LEVERANDØR-/LinkedIn-radar i briefen: følger Efento, IXON, Kunbus, Digital Matter, Phoenix Contact, Enless Wireless (nye produkter/firmware/kunngjøringer).
+- **Mac mini forberedt for Teams:** @microsoft/teams.cli (v3.0.0-preview.9) + devtunnel (1.0.1942) installert via npm/brew. Venter på at Frode kjører teams login + app create og sender creds.
+
+Kontekst om selskapet: [[bre-digital-profile]].
