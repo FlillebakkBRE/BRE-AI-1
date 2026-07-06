@@ -23,7 +23,7 @@
   },
   "meta": {
     "lastTouchedVersion": "2026.6.9",
-    "lastTouchedAt": "2026-07-03T06:48:34.481Z"
+    "lastTouchedAt": "2026-07-05T14:45:34.967Z"
   },
   "agents": {
     "defaults": {
@@ -132,6 +132,77 @@
         ],
         "env": {
           "PRIVATE_APP_ACCESS_TOKEN": "<REDACTED>"
+        }
+      },
+      "firmafakta": {
+        "url": "https://allemannsdata.com/firmafakta/mcp",
+        "transport": "streamable-http"
+      },
+      "ssb": {
+        "url": "https://allemannsdata.com/ssb/mcp",
+        "transport": "streamable-http"
+      },
+      "lovdata": {
+        "url": "https://allemannsdata.com/lovdata/mcp",
+        "transport": "streamable-http"
+      },
+      "postlister": {
+        "url": "https://allemannsdata.com/postlister/mcp",
+        "transport": "streamable-http"
+      },
+      "stortinget": {
+        "url": "https://allemannsdata.com/stortinget/mcp",
+        "transport": "streamable-http"
+      },
+      "geonorge": {
+        "url": "https://allemannsdata.com/geonorge/mcp",
+        "transport": "streamable-http"
+      },
+      "vegvesen": {
+        "url": "https://allemannsdata.com/vegvesen/mcp",
+        "transport": "streamable-http"
+      },
+      "luftkvalitet": {
+        "url": "https://allemannsdata.com/luftkvalitet/mcp",
+        "transport": "streamable-http"
+      },
+      "strompris": {
+        "url": "https://allemannsdata.com/strompris/mcp",
+        "transport": "streamable-http"
+      },
+      "weather": {
+        "url": "https://allemannsdata.com/weather/mcp",
+        "transport": "streamable-http"
+      },
+      "entsoe": {
+        "url": "https://allemannsdata.com/entsoe/mcp",
+        "transport": "streamable-http"
+      },
+      "statnett": {
+        "url": "https://allemannsdata.com/statnett/mcp",
+        "transport": "streamable-http"
+      },
+      "norgesbank": {
+        "url": "https://allemannsdata.com/norgesbank/mcp",
+        "transport": "streamable-http"
+      },
+      "nve": {
+        "url": "https://allemannsdata.com/nve/mcp",
+        "transport": "streamable-http"
+      },
+      "o365": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@softeria/ms-365-mcp-server@0.128.2",
+          "--preset",
+          "calendar,mail",
+          "--allowed-scopes",
+          "Calendars.Read User.Read Mail.ReadWrite"
+        ],
+        "env": {
+          "MS365_MCP_CLIENT_ID": "cb4af444-bca3-48a0-8a18-5bb641a82a5a",
+          "MS365_MCP_TENANT_ID": "90a3d4f8-dbbf-4159-bb17-0326d34bfdc2"
         }
       }
     }
