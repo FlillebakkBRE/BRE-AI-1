@@ -18,9 +18,14 @@ UA = "Mozilla/5.0 (lead-radar; privat/bedrift BRE Digital)"
 # BRE Digitals fokusområder — landbasert industri + offentlig sektor, IoT/digitalisering
 TERMS = [
     "IoT", "sensor", "sensorikk", "tilstandsovervåking", "fjernovervåking",
-    "sensorovervåking", "energiovervåking", "energiledelse", "trådløse sensorer",
-    "SD-anlegg", "byggautomasjon", "VA telemetri", "prediktivt vedlikehold",
-    "digital tvilling", "SCADA", "automasjon", "fjernavlesning", "smart bygg",
+    "sensorovervåking", "energiovervåking", "energiledelse", "energioppfølging",
+    "trådløse sensorer", "SD-anlegg", "byggautomasjon", "prediktivt vedlikehold",
+    "SCADA", "automasjon", "fjernavlesning", "smart bygg",
+    # VA/automasjon-vokabular (norske kommuner) — lagt til 2026-07-08
+    "driftskontroll", "toppsystem", "PLS", "NB-IoT", "vannmåler", "digitalisering bygg",
+    "temperaturovervåking",
+    # Lysstyring/DALI — BRE produktlinje (lagt til 2026-07-08)
+    "lysstyring", "belysningsanlegg", "veibelysning", "lysanlegg", "smart belysning", "KNX",
 ]
 
 def _search(term):
@@ -50,8 +55,13 @@ ICP_THRESHOLD = 70  # score >= dette => foreslå auto-fangst som deal
 ICP_KEYWORDS = ["iot", "sensor", "sensorikk", "tilstandsovervåking", "fjernovervåking",
     "sensorovervåking", "energiovervåking", "energiledelse", "energioppfølging", "eos",
     "trådløse sensorer", "sd-anlegg", "byggautomasjon", "va-telemetri", "vannmåler",
-    "telemetri", "scada", "automasjon", "digital tvilling", "prediktivt vedlikehold",
-    "overvåking", "fjernavlesning", "smart bygg"]
+    "telemetri", "scada", "automasjon", "prediktivt vedlikehold",
+    "overvåking", "fjernavlesning", "smart bygg",
+    # VA/automasjon (norske kommuner) — 2026-07-08
+    "driftskontroll", "toppsystem", "pls", "nb-iot", "digitalisering",
+    # Lysstyring/DALI-produktlinje — 2026-07-08 (dali/knx booster scoring, ikke retrieval)
+    "lysstyring", "belysning", "belysningsanlegg", "veibelysning", "lysanlegg",
+    "dali", "knx"]
 PUBLIC_HINTS = ["kommune", "fylkeskommune", "sykehus", "helse", "interkommunal",
     "innkjøpssamarbeid", "statsbygg", "etat", "direktorat", "universitet", "høgskole"]
 NEGATIVE = ["fluorometer", "forskningsinstrument", "instrument til forskning",
