@@ -22,4 +22,13 @@ Frode sendte 2026-07-05 fire Foodman-tilbud som underlag for fremtidige tilbudsm
 
 **✅ Generator-mekanisme funker (2026-07-05):** python-docx (installert i ~/Library/Python/3.9) genererer tilbud i BRE-mal. NB: python-docx nekter å åpne `.dotx` direkte — brevmalen ble konvertert til `brand/_brevmal_as_docx.docx` (byttet content-type template.main→document.main i [Content_Types].xml); åpne DEN som template. Header/footer/logo (word/media image1+2 + footer1) og BRE-font bevares. Malen mangler «Table Grid»-stil → sett tabellkanter manuelt via w:tblBorders. Skript-eksempler i `workspace/tilbud-maler/`: gen_dragen.py (tilbud fra bunn), add_komm.py (sett inn seksjon i eksisterende docx via ref._p.addprevious), gen_vedlegg.py (Modbus-vedlegg). Første ekte leveranse: Drågen Smokehouse desinfiseringsanlegg (Tilbud_Dragen_Smokehouse_UTKAST_v2.docx + Vedlegg_A_Modbus_registerkart_UTKAST.docx).
 
+**Prisregler (Frode 2026-07-06 — gjelder alle tilbud):**
+- **Materiell:** kostpris + 15 % påslag.
+- **Installasjon:** etter medgått tid, timesats **kr 970,-/time** (eks. mva.).
+- **BRE Cloud (SaaS):** **kr 599,-/mnd** (7 188,-/år), **ingen bindingstid** (NB: eldre datafangst-mal hadde 99 kr/enhet/mnd + 12 mnd binding — dette er standard SaaS-linje for mindre anlegg).
+- **Betalingsplan:** droppes for prosjekt **under kr 100 000** (da ingen 30/60/10-plan). Over 100k: bruk 30 % bestilling / 60 % installasjon / 10 % idriftsettelse.
+- Struktur: samle ALL pris under kap. «4. Pris» (Frode foretrekker det ryddig).
+
+**Drågen Smokehouse (levende eksempel):** siste versjon `Tilbud_Dragen_Smokehouse_UTKAST_v11.docx`. Prosess-/leveranseskisse `prosess_dragen.png/.svg` (fargekodet: grå=eksisterende pH+pumpe+ventil, blå=BRE styreskap/PLS+signalintegrasjon+ventilstyring 24VAC, gul=opsjon nivåmåler), generert via rsvg-convert (librsvg). Byggeskript `upd_tilbud_kap4.py`. Beløp 35k (deal closedwon).
+
 **Åpne spørsmål til Frode før tilbuds-generator bygges (del av [[salg-pipeline]] roadmap #3):** (1) er disse 3 malene representative/komplette? (2) output som .docx eller Outlook-kladd m/vedlegg? (3) finnes fast logo/brevmal-fil (header/footer) som skal brukes?

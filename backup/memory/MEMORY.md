@@ -11,4 +11,10 @@
 - [Tilbud-maler](tilbud-maler.md) — 3 BRE-tilbudsmodeller (dagrate/BOM/enhetspris+abo) fra Foodman, underlag for tilbuds-generator, filer i workspace/tilbud-maler/
 - [Homey](bre-homey.md) — LIVE 2026-07-06: Homey Pro-integrasjon via sky-proxy, script homey/homey.py, 56 enheter, nøkkel gitignorert
 - [Diakonhjemmet MCP](diakonhjemmet-mcp.md) — BRE Cloud InfluxDB tidsserie (kunde-IoT), OAuth; fikset med `openclaw mcp reload` 2026-07-06
-- [PowerOffice Go](poweroffice-go.md) — BRE forretningssystem, API v2 (goapi.poweroffice.net/v2), specs i workspace/poweroffice/, venter på nøkler
+- [PowerOffice Go](poweroffice-go.md) — BRE forretningssystem, API v2 LIVE (Demo) 2026-07-06, klient workspace/poweroffice/poweroffice.py, nøkler gitignorert
+- [E-post-triage](epost-triage-preferanser.md) — hopp over driftsalarmer (IXON/BRE Cloud/RMM device-offline) i innboks-oppfølging + morgenbrief
+- [E-post-formatering](epost-formatering.md) — alle kladder skal ha struktur (HTML avsnitt/punkt), sett body via update-mail-message (ikke flat Comment)
+- [Kundeportal DGX](kundeportal-dgx.md) — privat kunde-AI på DGX (kunde spør på egne IoT-data); Fase 1 query-lag bygget i workspace/kundeportal/
+- [HubSpot pipeline-steg](hubspot-pipeline-steg.md) — deal-steg mapping: presentationscheduled=«Tilbud sendt», contractsent=⚠️Won-felle (ikke bruk for tilbud sendt)
+- [BRE Lysstyring/DALI](bre-lysstyring-dali.md) — produktlinje tunnel-lysstyring (Phoenix Contact PLCnext/DALI/Lumgate); produktark-generator i workspace/bre-lysstyring/
+- [Data-håndteringsprinsipp](data-handling-prinsipp.md) — M365=fasit, samle i workspace mot DGX-migrering, ikke dupliser forretningsdata i Claude-prosjekt, sensitivt→DGX
