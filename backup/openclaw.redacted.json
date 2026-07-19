@@ -12,7 +12,7 @@
       "resetOnExit": false
     },
     "controlUi": {
-      "allowInsecureAuth": true
+      "allowInsecureAuth": false
     }
   },
   "wizard": {
@@ -22,8 +22,8 @@
     "lastRunMode": "local"
   },
   "meta": {
-    "lastTouchedVersion": "2026.6.9",
-    "lastTouchedAt": "2026-07-05T14:45:34.967Z"
+    "lastTouchedVersion": "2026.7.1-2",
+    "lastTouchedAt": "2026-07-18T18:25:08.899Z"
   },
   "agents": {
     "defaults": {
@@ -60,6 +60,9 @@
   },
   "tools": {
     "profile": "coding",
+    "fs": {
+      "workspaceOnly": true
+    },
     "web": {
       "search": {
         "provider": "brave",
@@ -136,39 +139,48 @@
       },
       "firmafakta": {
         "url": "https://allemannsdata.com/firmafakta/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "ssb": {
         "url": "https://allemannsdata.com/ssb/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "lovdata": {
         "url": "https://allemannsdata.com/lovdata/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "postlister": {
         "url": "https://allemannsdata.com/postlister/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "stortinget": {
         "url": "https://allemannsdata.com/stortinget/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "geonorge": {
         "url": "https://allemannsdata.com/geonorge/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "vegvesen": {
         "url": "https://allemannsdata.com/vegvesen/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "luftkvalitet": {
         "url": "https://allemannsdata.com/luftkvalitet/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "strompris": {
         "url": "https://allemannsdata.com/strompris/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "weather": {
         "url": "https://allemannsdata.com/weather/mcp",
@@ -176,19 +188,23 @@
       },
       "entsoe": {
         "url": "https://allemannsdata.com/entsoe/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "statnett": {
         "url": "https://allemannsdata.com/statnett/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "norgesbank": {
         "url": "https://allemannsdata.com/norgesbank/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "nve": {
         "url": "https://allemannsdata.com/nve/mcp",
-        "transport": "streamable-http"
+        "transport": "streamable-http",
+        "enabled": false
       },
       "o365": {
         "command": "npx",
