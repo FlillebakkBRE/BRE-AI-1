@@ -1,0 +1,196 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BRE AI#1 — Topologi</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f8fafc;
+    --fg: #172033;
+    --muted: #5b6475;
+    --line: #64748b;
+    --neutral: #e2e8f0;
+    --input: #bfdbfe;
+    --process: #c7d2fe;
+    --storage: #99f6e4;
+    --external: #fde68a;
+    --risk: #fecaca;
+    --ok: #86efac;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --fg: #e5e7eb;
+      --muted: #a3adbd;
+      --line: #94a3b8;
+      --neutral: #334155;
+      --input: #1d4ed8;
+      --process: #4338ca;
+      --storage: #0f766e;
+      --external: #92400e;
+      --risk: #991b1b;
+      --ok: #166534;
+    }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font:
+      14px/1.4 ui-sans-serif,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif;
+  }
+  main {
+    max-width: 1040px;
+    margin: 32px auto;
+    padding: 0 20px;
+  }
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .title { font-size: 20px; font-weight: 650; fill: var(--fg); }
+  .zonelabel { font-size: 13px; font-weight: 700; fill: var(--muted); letter-spacing: .3px; }
+  .label { font-size: 14px; font-weight: 650; fill: var(--fg); }
+  .pill { font-size: 12.5px; font-weight: 600; fill: var(--fg); }
+  .small { font-size: 11.5px; fill: var(--muted); }
+  .node { stroke: var(--line); stroke-width: 1; }
+  .neutral { fill: var(--neutral); }
+  .input { fill: var(--input); }
+  .process { fill: var(--process); }
+  .storage { fill: var(--storage); }
+  .external { fill: var(--external); }
+  .risk { fill: var(--risk); }
+  .ok { fill: var(--ok); }
+  .off { fill: var(--neutral); opacity: .4; stroke-dasharray: 4 3; }
+  .offtext { font-size: 12px; font-weight: 600; fill: var(--muted); opacity: .75; }
+  .edge { stroke: var(--line); stroke-width: 1.6; fill: none; }
+  .zone { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 6 5; opacity: .75; }
+</style>
+<main>
+  <svg viewBox="0 0 1000 940" role="img" aria-label="BRE AI#1 OpenClaw topologi">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="var(--line)" />
+      </marker>
+    </defs>
+
+    <text class="title" x="20" y="30">BRE AI#1 — OpenClaw-topologi · 2026-07-20</text>
+
+    <!-- EDGES -->
+    <path class="edge" d="M500 96 L500 128" marker-end="url(#arrow)" />
+    <path class="edge" d="M500 196 L500 228" marker-end="url(#arrow)" />
+    <path class="edge" d="M500 292 L500 332" marker-end="url(#arrow)" />
+
+    <!-- Telegram -->
+    <rect class="node input" x="400" y="52" width="200" height="44" rx="8" />
+    <text class="label" x="500" y="72" text-anchor="middle">Telegram — Frode</text>
+    <text class="small" x="500" y="88" text-anchor="middle">direktemelding (kanal inn)</text>
+
+    <!-- Gateway -->
+    <rect class="node process" x="360" y="128" width="280" height="68" rx="8" />
+    <text class="label" x="500" y="150" text-anchor="middle">OpenClaw Gateway</text>
+    <text class="small" x="500" y="167" text-anchor="middle">macOS · v2026.7.1-2 · LaunchAgent</text>
+    <text class="small" x="500" y="182" text-anchor="middle">ruting · MCP-orkestrering · 🐕 watchdog aktiv</text>
+
+    <!-- Main agent -->
+    <rect class="node process" x="360" y="228" width="280" height="64" rx="8" stroke-width="2" />
+    <text class="label" x="500" y="251" text-anchor="middle">main-agent · BRE AI#1</text>
+    <text class="small" x="500" y="269" text-anchor="middle">Opus 4.8 · minne · cron 07:00 · 07:10 · 07:30(man) · 07:45</text>
+    <text class="small" x="500" y="283" text-anchor="middle">morgen-brief · lead-radar · insider · oppfølging · møtereferat</text>
+
+    <!-- ZONE: AKTIVE INTEGRASJONER -->
+    <rect class="zone" x="20" y="332" width="960" height="150" rx="10" />
+    <text class="zonelabel" x="36" y="352">🔌 AKTIVE INTEGRASJONER — LIVE</text>
+
+    <rect class="node storage" x="28" y="366" width="148" height="64" rx="6" />
+    <text class="pill" x="102" y="390" text-anchor="middle">O365 / Graph</text>
+    <text class="small" x="102" y="408" text-anchor="middle">kalender: les</text>
+    <text class="small" x="102" y="422" text-anchor="middle">e-post: kladd</text>
+
+    <rect class="node external" x="188" y="366" width="148" height="64" rx="6" />
+    <text class="pill" x="262" y="390" text-anchor="middle">HubSpot CRM</text>
+    <text class="small" x="262" y="408" text-anchor="middle">deals · pipeline</text>
+    <text class="small" x="262" y="422" text-anchor="middle">(ekstern)</text>
+
+    <rect class="node storage" x="348" y="366" width="148" height="64" rx="6" />
+    <text class="pill" x="422" y="390" text-anchor="middle">weather</text>
+    <text class="small" x="422" y="408" text-anchor="middle">MET / met.no</text>
+    <text class="small" x="422" y="422" text-anchor="middle">→ morgenbrief</text>
+
+    <rect class="node storage" x="508" y="366" width="148" height="64" rx="6" stroke-width="2" />
+    <text class="pill" x="582" y="390" text-anchor="middle">Homey Pro 🏠</text>
+    <text class="small" x="582" y="408" text-anchor="middle">56 enheter</text>
+    <text class="small" x="582" y="422" text-anchor="middle">sky-proxy · sanntid</text>
+
+    <rect class="node storage" x="668" y="366" width="148" height="64" rx="6" stroke-width="2" />
+    <text class="pill" x="742" y="390" text-anchor="middle">Diakonhjemmet 🏥</text>
+    <text class="small" x="742" y="408" text-anchor="middle">kunde-IoT · InfluxDB</text>
+    <text class="small" x="742" y="422" text-anchor="middle">BRE Cloud</text>
+
+    <rect class="node ok" x="828" y="366" width="148" height="64" rx="6" stroke-width="2" />
+    <text class="pill" x="902" y="390" text-anchor="middle">PowerOffice Go 💰</text>
+    <text class="small" x="902" y="408" text-anchor="middle">LIVE PROD · kun les</text>
+    <text class="small" x="902" y="422" text-anchor="middle">regnskap · lønn</text>
+
+    <text class="small" x="36" y="462">PowerOffice: kun lesing (regnskap/lønn/inng. faktura) — Products · Customers · Salg/Faktura = 403 (ikke åpnet ennå)</text>
+    <text class="small" x="36" y="476">O365: frode.lillebakk@bredigital.no · aldri auto-send   ·   Homey + Diakonhjemmet = IoT-sanntid</text>
+
+    <!-- ZONE: DEAKTIVERT -->
+    <rect class="zone" x="20" y="496" width="960" height="112" rx="10" />
+    <text class="zonelabel" x="36" y="516">⏸️ DEAKTIVERT — 13 åpne-data-MCP (av for stabilitet · reversibelt: «skru på X»)</text>
+
+    <rect class="node off" x="28" y="524" width="128" height="26" rx="6" /><text class="offtext" x="92" y="541" text-anchor="middle">strompris</text>
+    <rect class="node off" x="164" y="524" width="128" height="26" rx="6" /><text class="offtext" x="228" y="541" text-anchor="middle">entsoe</text>
+    <rect class="node off" x="300" y="524" width="128" height="26" rx="6" /><text class="offtext" x="364" y="541" text-anchor="middle">statnett</text>
+    <rect class="node off" x="436" y="524" width="128" height="26" rx="6" /><text class="offtext" x="500" y="541" text-anchor="middle">nve</text>
+    <rect class="node off" x="572" y="524" width="128" height="26" rx="6" /><text class="offtext" x="636" y="541" text-anchor="middle">norgesbank</text>
+    <rect class="node off" x="708" y="524" width="128" height="26" rx="6" /><text class="offtext" x="772" y="541" text-anchor="middle">geonorge</text>
+    <rect class="node off" x="844" y="524" width="128" height="26" rx="6" /><text class="offtext" x="908" y="541" text-anchor="middle">vegvesen</text>
+
+    <rect class="node off" x="28" y="558" width="128" height="26" rx="6" /><text class="offtext" x="92" y="575" text-anchor="middle">luftkvalitet</text>
+    <rect class="node off" x="164" y="558" width="128" height="26" rx="6" /><text class="offtext" x="228" y="575" text-anchor="middle">lovdata</text>
+    <rect class="node off" x="300" y="558" width="128" height="26" rx="6" /><text class="offtext" x="364" y="575" text-anchor="middle">postlister</text>
+    <rect class="node off" x="436" y="558" width="128" height="26" rx="6" /><text class="offtext" x="500" y="575" text-anchor="middle">ssb</text>
+    <rect class="node off" x="572" y="558" width="128" height="26" rx="6" /><text class="offtext" x="636" y="575" text-anchor="middle">stortinget</text>
+    <rect class="node off" x="708" y="558" width="128" height="26" rx="6" /><text class="offtext" x="772" y="575" text-anchor="middle">firmafakta</text>
+
+    <!-- ZONE: SALGSMOTOR -->
+    <rect class="zone" x="20" y="622" width="960" height="140" rx="10" />
+    <text class="zonelabel" x="36" y="642">💼 SALGSMOTOR — lead → lukking</text>
+    <path class="edge" d="M156 682 L188 682" marker-end="url(#arrow)" />
+    <path class="edge" d="M316 682 L348 682" marker-end="url(#arrow)" />
+    <path class="edge" d="M476 682 L508 682" marker-end="url(#arrow)" />
+    <path class="edge" d="M636 682 L668 682" marker-end="url(#arrow)" />
+    <path class="edge" d="M796 682 L828 682" marker-end="url(#arrow)" />
+    <rect class="node storage" x="28" y="664" width="128" height="36" rx="6" /><text class="pill" x="92" y="686" text-anchor="middle">Doffin-lead</text>
+    <rect class="node external" x="188" y="664" width="128" height="36" rx="6" /><text class="pill" x="252" y="686" text-anchor="middle">HubSpot-deal</text>
+    <rect class="node process" x="348" y="664" width="128" height="36" rx="6" /><text class="pill" x="412" y="686" text-anchor="middle">oppfølging</text>
+    <rect class="node process" x="508" y="664" width="128" height="36" rx="6" /><text class="pill" x="572" y="686" text-anchor="middle">møtereferat</text>
+    <rect class="node neutral" x="668" y="664" width="128" height="36" rx="6" /><text class="pill" x="732" y="686" text-anchor="middle">tilbud-gen 🔧</text>
+    <rect class="node neutral" x="828" y="664" width="128" height="36" rx="6" /><text class="pill" x="892" y="686" text-anchor="middle">e-signering 🔧</text>
+    <text class="small" x="36" y="726">Doffin auto-fangst → deal → pipeline-helse/oppfølgings-kladd + Notably-referat på deal → tilbud i BRE-profil → e-sign</text>
+    <text class="small" x="36" y="744">✅ live: Doffin · HubSpot · oppfølgings-radar · møtereferat (Notably)      🔧 bygges: tilbud-generator · e-signering</text>
+
+    <!-- ZONE: SIKKERHET / STABILITET -->
+    <rect class="zone" x="20" y="778" width="620" height="130" rx="10" />
+    <text class="zonelabel" x="36" y="798">🔒 SIKKERHET · STABILITET — 2026-07-18/20</text>
+    <rect class="node ok" x="34" y="810" width="20" height="16" rx="3" /><text class="small" x="62" y="823">🐕 watchdog (launchd) — auto-restart ved henging</text>
+    <rect class="node ok" x="34" y="834" width="20" height="16" rx="3" /><text class="small" x="62" y="847">insecure-auth: AV · fs.workspaceOnly: PÅ · brave-plugin pinnet</text>
+    <rect class="node ok" x="34" y="858" width="20" height="16" rx="3" /><text class="small" x="62" y="871">security audit: 0 kritiske hull</text>
+    <rect class="node ok" x="34" y="882" width="20" height="16" rx="3" /><text class="small" x="62" y="895">oppgradert v2026.6.9 → v2026.7.1-2</text>
+
+    <!-- LEGEND -->
+    <rect class="zone" x="660" y="778" width="320" height="130" rx="10" />
+    <text class="zonelabel" x="676" y="798">TEGNFORKLARING</text>
+    <rect class="node process" x="674" y="810" width="20" height="16" rx="3" /><text class="small" x="702" y="823">kjerne (gateway/agent)</text>
+    <rect class="node storage" x="674" y="834" width="20" height="16" rx="3" /><text class="small" x="702" y="847">MCP-kilde / IoT (live)</text>
+    <rect class="node external" x="674" y="858" width="20" height="16" rx="3" /><text class="small" x="702" y="871">ekstern tjeneste</text>
+    <rect class="node off" x="674" y="882" width="20" height="16" rx="3" /><text class="small" x="702" y="895">deaktivert (reversibelt)</text>
+  </svg>
+</main>

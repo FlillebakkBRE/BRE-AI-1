@@ -1,0 +1,8 @@
+# Sensitivt / skal ALDRI til git-backup (personopplysninger, nøkler, transient)
+Turnus_lonnsomhet_2026*.xlsx
+*_KORRIGERT.xlsx
+BOM*.xlsx
+media/inbound/
+.openclaw-cli-images/
+.openclaw/tmp/
+poweroffice/.token_cache.json
