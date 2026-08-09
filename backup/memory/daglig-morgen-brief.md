@@ -5,6 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: cab12b21-5815-463f-83a6-c50ac6daf2cd
+  modified: 2026-08-03T17:31:49.747Z
 ---
 
 Cron-jobb «Morgen-brief BRE Digital» (id `93c12194-521e-45a4-a8a5-0955519c4348`) leverer daglig oppsummering til Frode på Telegram **hverdager kl. 07:00 Europe/Oslo** (opprettet 2026-07-02, første kjøring fre 3. juli 2026).
@@ -27,5 +28,7 @@ Batteri-baseline (2026-07-02, Diakonhjemmet/Steinerud): **462.28 String3 (B/kjel
 - **Leverandør-innkjøp (Onninen + Phoenix Contact):** ikke selvbetjent API – mest EDI/OCI-PunchOut, krever konto-/gateway-credentials fra leverandør. Onninen: onninen.no/edi + /punch-out. Phoenix: punchout.phoenixcontact.com/gateway/v1/oci (+ PLCnext-API/OPC UA for automasjonsdata – mer relevant for IoT enn innkjøp). Frode ønsker utkast til henvendelse. Større løft, DGX-fase.
 - **LinkedIn:** posting gjøres MANUELT (ikke API). Overvåking: LinkedIn har ingen lovlig API for andres innhold, og skraping bryter ToS (de saksøkte/stengte Proxycurl 2025) — frarådes. Valgt lovlig løsning (2026-07-05): morgenbriefens LEVERANDØR- og KONKURRENT-radar kjører nå eksplisitte `site:linkedin.com <selskap>`-søk via Brave (freshness=week) + vanlig web. Testet OK (fanget El-Watch-side + faktisk innlegg). Dekning er DELVIS (mye bak innlogging). Leverandører: Efento, IXON, Kunbus, Digital Matter, Phoenix Contact, Enless Wireless. Konkurrenter: Etero, Piscada, Clarify, El-Watch, Axbit, Nivero, Gapit Nordics, Digel. **Oppgradering senere:** når O365-e-post er koblet ([[o365-integrasjon]]), følg selskapene på LinkedIn → parse LinkedIn-varsel-e-postene = full lovlig dekning.
 - **Mac mini forberedt for Teams:** @microsoft/teams.cli (v3.0.0-preview.9) + devtunnel (1.0.1942) installert via npm/brew. Venter på at Frode kjører teams login + app create og sender creds.
+
+**Seksjon 10b (2026-07-20):** BRE Cloud ARR-linje via `poweroffice/cloud_arr.py`. **Seksjon 12 STRATEGI-NUDGE (2026-08-03):** KUN mandager — leser «Neste strategiske steg» fra `workspace/STRATEGI_BRE.md` og lister gjenstående uavkryssede punkter (maks 5 linjer). Andre ukedager hoppes seksjonen helt over, så det ikke blir daglig mas. Se [[salg-pipeline]].
 
 Kontekst om selskapet: [[bre-digital-profile]].

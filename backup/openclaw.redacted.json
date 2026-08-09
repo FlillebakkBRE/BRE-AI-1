@@ -2,7 +2,11 @@
   "gateway": {
     "auth": {
       "mode": "token",
-      "token": "<REDACTED>"
+      "token": {
+        "source": "file",
+        "provider": "filemain",
+        "id": "/gatewayAuthToken"
+      }
     },
     "mode": "local",
     "port": 18789,
@@ -16,14 +20,14 @@
     }
   },
   "wizard": {
-    "lastRunAt": "2026-06-23T15:47:51.847Z",
-    "lastRunVersion": "2026.6.9",
-    "lastRunCommand": "onboard",
+    "lastRunAt": "2026-08-03T10:35:47.997Z",
+    "lastRunVersion": "2026.7.1-2",
+    "lastRunCommand": "doctor",
     "lastRunMode": "local"
   },
   "meta": {
     "lastTouchedVersion": "2026.7.1-2",
-    "lastTouchedAt": "2026-07-18T18:25:08.899Z"
+    "lastTouchedAt": "2026-08-03T10:36:38.669Z"
   },
   "agents": {
     "defaults": {
@@ -48,10 +52,22 @@
           "agentRuntime": {
             "id": "claude-cli"
           }
+        },
+        "anthropic/claude-sonnet-5": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
         }
       },
       "model": {
         "primary": "anthropic/claude-opus-4-8"
+      },
+      "memorySearch": {
+        "provider": "ollama",
+        "model": "nomic-embed-text",
+        "extraPaths": [
+          "/Users/breai1/.claude/projects/-Users-breai1--openclaw-workspace/memory"
+        ]
       }
     }
   },
@@ -95,10 +111,15 @@
   },
   "auth": {
     "profiles": {
-      "anthropic:claude-cli": {
-        "provider": "claude-cli",
-        "mode": "oauth"
+      "anthropic:api": {
+        "provider": "anthropic",
+        "mode": "api_key"
       }
+    },
+    "order": {
+      "anthropic": [
+        "anthropic:api"
+      ]
     }
   },
   "channels": {
@@ -109,7 +130,11 @@
           "requireMention": true
         }
       },
-      "botToken": "<REDACTED>"
+      "botToken": {
+        "source": "file",
+        "provider": "filemain",
+        "id": "/telegramBotToken"
+      }
     }
   },
   "commands": {
@@ -218,9 +243,140 @@
         ],
         "env": {
           "MS365_MCP_CLIENT_ID": "cb4af444-bca3-48a0-8a18-5bb641a82a5a",
-          "MS365_MCP_TENANT_ID": "90a3d4f8-dbbf-4159-bb17-0326d34bfdc2"
+          "MS365_MCP_TENANT_ID": "90a3d4f8-dbbf-4159-bb17-0326d34bfdc2",
+          "MS365_MCP_AUTH_CACHE_COMMAND": "/Users/breai1/.openclaw/workspace/o365/token-cache-cmd.py"
         }
       }
+    }
+  },
+  "skills": {
+    "entries": {
+      "1password": {
+        "enabled": false
+      },
+      "apple-notes": {
+        "enabled": false
+      },
+      "apple-reminders": {
+        "enabled": false
+      },
+      "bear-notes": {
+        "enabled": false
+      },
+      "blogwatcher": {
+        "enabled": false
+      },
+      "blucli": {
+        "enabled": false
+      },
+      "camsnap": {
+        "enabled": false
+      },
+      "coding-agent": {
+        "enabled": false
+      },
+      "eightctl": {
+        "enabled": false
+      },
+      "gemini": {
+        "enabled": false
+      },
+      "gh-issues": {
+        "enabled": false
+      },
+      "gifgrep": {
+        "enabled": false
+      },
+      "github": {
+        "enabled": false
+      },
+      "gog": {
+        "enabled": false
+      },
+      "goplaces": {
+        "enabled": false
+      },
+      "himalaya": {
+        "enabled": false
+      },
+      "mcporter": {
+        "enabled": false
+      },
+      "model-usage": {
+        "enabled": false
+      },
+      "nano-pdf": {
+        "enabled": false
+      },
+      "obsidian": {
+        "enabled": false
+      },
+      "openai-whisper": {
+        "enabled": false
+      },
+      "openai-whisper-api": {
+        "enabled": false
+      },
+      "openhue": {
+        "enabled": false
+      },
+      "oracle": {
+        "enabled": false
+      },
+      "ordercli": {
+        "enabled": false
+      },
+      "peekaboo": {
+        "enabled": false
+      },
+      "sag": {
+        "enabled": false
+      },
+      "session-logs": {
+        "enabled": false
+      },
+      "sherpa-onnx-tts": {
+        "enabled": false
+      },
+      "songsee": {
+        "enabled": false
+      },
+      "sonoscli": {
+        "enabled": false
+      },
+      "spotify-player": {
+        "enabled": false
+      },
+      "summarize": {
+        "enabled": false
+      },
+      "things-mac": {
+        "enabled": false
+      },
+      "tmux": {
+        "enabled": false
+      },
+      "trello": {
+        "enabled": false
+      },
+      "video-frames": {
+        "enabled": false
+      },
+      "xurl": {
+        "enabled": false
+      }
+    }
+  },
+  "secrets": {
+    "providers": {
+      "filemain": {
+        "source": "file",
+        "path": "~/.openclaw/secrets.json",
+        "mode": "json"
+      }
+    },
+    "defaults": {
+      "file": "filemain"
     }
   }
 }

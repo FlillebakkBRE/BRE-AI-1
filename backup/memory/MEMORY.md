@@ -16,6 +16,9 @@
 - [E-post-formatering](epost-formatering.md) — alle kladder skal ha struktur (HTML avsnitt/punkt), sett body via update-mail-message (ikke flat Comment)
 - [Kundeportal DGX](kundeportal-dgx.md) — privat kunde-AI på DGX (kunde spør på egne IoT-data); Fase 1 query-lag bygget i workspace/kundeportal/
 - [HubSpot pipeline-steg](hubspot-pipeline-steg.md) — deal-steg mapping: presentationscheduled=«Tilbud sendt», contractsent=⚠️Won-felle (ikke bruk for tilbud sendt)
+- [HubSpot prosjekt-kobling](hubspot-prosjekt-kobling.md) — auto-knytt avtaler/oppgaver/tickets til prosjekt (navn=selskap); skript + daglig cron 06:55, idempotent
 - [BRE Lysstyring/DALI](bre-lysstyring-dali.md) — produktlinje tunnel-lysstyring (Phoenix Contact PLCnext/DALI/Lumgate); produktark-generator i workspace/bre-lysstyring/
 - [Data-håndteringsprinsipp](data-handling-prinsipp.md) — M365=fasit, samle i workspace mot DGX-migrering, ikke dupliser forretningsdata i Claude-prosjekt, sensitivt→DGX
 - [OpenClaw-stabilitet](openclaw-stabilitet.md) — gateway-watchdog (launchd) auto-restarter hengt gateway; MCP-flap mistenkt; pkt1 (trimme ubrukte MCP) gjenstår
+- [OpenClaw modell-auth](openclaw-modell-auth.md) — byttet fra Claude-abo (OAuth, utløp headless) til Anthropic API-nøkkel 2026-08-03; fikset at cron/morgenbrief feilet hver morgen
+- [OpenClaw minne-embeddings](openclaw-memory-embeddings.md) — semantisk memory_search fikset 2026-08-03: lokal Ollama (nomic-embed-text) + extraPaths-bro til Claude-minnestien
