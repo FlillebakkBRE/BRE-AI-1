@@ -1,0 +1,5 @@
+# Hemmeligheter og lokal runtime
+gantt_auth.json
+*.log
+*.err
+*.out
