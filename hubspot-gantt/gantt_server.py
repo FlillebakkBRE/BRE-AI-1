@@ -95,7 +95,7 @@ def fetch():
             owners[str(o["id"])] = nm or (o.get("email") or "")
     except Exception:
         pass
-    tasks = list_all("tasks", ["hs_task_subject", "hs_task_status", "hs_timestamp", "bre_fagomrade", "hubspot_owner_id", "bre_start_date"], ["projects"])
+    tasks = list_all("tasks", ["hs_task_subject", "hs_task_status", "hs_timestamp", "bre_fagomrade", "hubspot_owner_id", "bre_start_date", "hs_task_priority"], ["projects"])
     by_proj = {}
     for t in tasks:
         pr = t["properties"]
@@ -108,6 +108,7 @@ def fetch():
                 "date": d10(pr.get("hs_timestamp")),
                 "sd": d10(pr.get("bre_start_date")),
                 "fag": pr.get("bre_fagomrade") or "",
+                "prio": pr.get("hs_task_priority") or "NONE",
                 "owner": own,
                 "ownerid": str(pr.get("hubspot_owner_id") or ""),
             })
@@ -146,6 +147,7 @@ def build_tasks(show_all, fag="", owner=""):
             t_sd = ov.get("sd", t["sd"])
             t_owner = ov.get("owner", t.get("owner") or "")
             t_ownerid = ov.get("ownerid", t.get("ownerid") or "")
+            t_prio = ov.get("prio", t.get("prio") or "NONE")
             due = t_date or pstart or datetime.date.today().isoformat()
             sd = t_sd or ""
             if sd:
@@ -163,7 +165,7 @@ def build_tasks(show_all, fag="", owner=""):
             gtasks.append({"id": f"t{pid}_{i}", "hsid": t.get("hsid"), "name": "   " + t["subject"],
                            "start": s, "end": e, "progress": 100 if t_status=="COMPLETED" else 0,
                            "custom_class": cls, "fag": faglbl, "sd": sd, "due": due, "overdue": overdue,
-                           "status": t_status, "owner": t_owner, "ownerid": t_ownerid})
+                           "status": t_status, "prio": t_prio, "owner": t_owner, "ownerid": t_ownerid})
     return gtasks
 
 PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
@@ -194,6 +196,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t .st{flex:0 0 auto;display:flex;align-items:center;gap:5px;width:96px;font-size:10.5px;cursor:pointer;white-space:nowrap;color:#c8d3dc}
  #side .t .st .sdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
  #side .t .st:hover{color:#fff}
+ #side .t .prio{flex:0 0 auto;width:16px;text-align:center;font-size:13px;cursor:pointer;line-height:1}
+ #side .t .prio:hover{filter:brightness(1.3)}
  #side .t .own{color:#8fa0ab;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:120px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
  #side .t .own:hover{color:#59C2EA;text-decoration:underline}
  #side .t.overdue{box-shadow:inset 3px 0 0 #E0533A}
@@ -339,6 +343,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    var body={hsid:it.hsid};
    if(it.type==='move'){ body.start=it.prevStart; body.date=it.prevDue; }
    else if(it.type==='owner') body.ownerid=it.prev;
+   else if(it.type==='prio') body.prio=it.prev;
    else body.status=it.prev;
    this.disabled=true;
    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -389,6 +394,41 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    sel.onchange=function(){fin(true);};
    sel.onblur=function(){fin(false);};
  }
+ // Prioritet: klikkbart flagg-ikon (farge = nivå)
+ var PRIO={NONE:{lbl:'Ingen',col:'#5b6b78'},LOW:{lbl:'Lav',col:'#59C2EA'},MEDIUM:{lbl:'Middels',col:'#E6A100'},HIGH:{lbl:'Høy',col:'#E0533A'}};
+ var PRORDER=['HIGH','MEDIUM','LOW','NONE'];
+ function prioEl(t){
+   var p=PRIO[t.prio]||PRIO.NONE;
+   var el=document.createElement('span'); el.className='prio'; el.textContent='⚑';
+   el.style.color=p.col; if(!t.prio||t.prio==='NONE') el.style.opacity='.28';
+   el.title='Prioritet: '+p.lbl+' — klikk for å endre';
+   el.onclick=function(e){e.stopPropagation();openPrioSel(t,el);};
+   return el;
+ }
+ function openPrioSel(t,el){
+   var sel=document.createElement('select'); sel.className='stsel';
+   PRORDER.forEach(function(k){var op=document.createElement('option');op.value=k;op.textContent=PRIO[k].lbl;
+     if(k===(t.prio||'NONE')) op.selected=true; sel.appendChild(op);});
+   el.replaceWith(sel); sel.focus();
+   sel.onclick=function(e){e.stopPropagation();};
+   var handled=false;
+   function fin(save){
+     if(handled) return; handled=true;
+     var ns=sel.value, old=t.prio||'NONE';
+     if(save && ns!==old){
+       fetch('/prio',{method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({hsid:t.hsid,prio:ns})})
+         .then(function(r){return r.json();}).then(function(j){
+           if(j.ok){ t.prio=ns; pushUndo({type:'prio',hsid:t.hsid,prev:old,label:t.name.trim()});
+             toast('✔ Prioritet: '+t.name.trim()+' → '+PRIO[ns].lbl,true); }
+           else toast('✖ '+(j.error||'feil'),false);
+           sel.replaceWith(prioEl(t));
+         }).catch(function(e){toast('✖ '+e,false);sel.replaceWith(prioEl(t));});
+     } else { sel.replaceWith(prioEl(t)); }
+   }
+   sel.onchange=function(){fin(true);};
+   sel.onblur=function(){fin(false);};
+ }
  function jump(id){
    var el=document.querySelector('.bar-wrapper[data-id="'+id+'"]');
    if(!el) return;
@@ -407,9 +447,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      s.textContent=(t.overdue?'⚠ ':'')+t.name.trim();
      if(t.overdue){ s.title='Forfalt: '+t.due; }
      d.appendChild(dot); d.appendChild(s);
-     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
+     if(t.hsid){ d.appendChild(prioEl(t)); d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
    }
-   d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel')) return; jump(id);};})(t.id);
+   d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio')) return; jump(id);};})(t.id);
    side.appendChild(d);
  });
 
@@ -505,7 +545,7 @@ class H(BaseHTTPRequestHandler):
         if not self._authed():
             return
         route = self.path.split("?")[0]
-        if route not in ("/move", "/owner", "/status"):
+        if route not in ("/move", "/owner", "/status", "/prio"):
             self._json(404, {"ok": False, "error": "ukjent endepunkt"}); return
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -531,13 +571,20 @@ class H(BaseHTTPRequestHandler):
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hubspot_owner_id": ownerid}})
                 remember_override(hsid, {"ownerid": ownerid, "owner": (_cache.get("owners") or {}).get(ownerid, "")})
                 self._json(200, {"ok": True, "hsid": hsid, "ownerid": ownerid})
-            else:  # /status
+            elif route == "/status":
                 status = str(payload.get("status") or "").strip()
                 if status not in ("NOT_STARTED", "IN_PROGRESS", "WAITING", "DEFERRED", "COMPLETED"):
                     self._json(400, {"ok": False, "error": "ugyldig status"}); return
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hs_task_status": status}})
                 remember_override(hsid, {"status": status})
                 self._json(200, {"ok": True, "hsid": hsid, "status": status})
+            elif route == "/prio":
+                prio = str(payload.get("prio") or "").strip()
+                if prio not in ("NONE", "LOW", "MEDIUM", "HIGH"):
+                    self._json(400, {"ok": False, "error": "ugyldig prioritet"}); return
+                patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hs_task_priority": prio}})
+                remember_override(hsid, {"prio": prio})
+                self._json(200, {"ok": True, "hsid": hsid, "prio": prio})
         except urllib.error.HTTPError as e:
             self._json(502, {"ok": False, "error": f"HubSpot {e.code}: {e.read().decode()[:120]}"})
         except Exception as e:
