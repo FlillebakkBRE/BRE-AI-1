@@ -26,6 +26,23 @@ try:
 except Exception:
     AUTH = None
 _cache = {"t": 0, "data": None}
+# Overstyrings-lag: siste skriving pr. oppgave legges oppå det HubSpots (trege) liste-endepunkt
+# returnerer, så en rask oppdatering aldri viser gammel verdi. Selv-heler etter OVERRIDE_TTL.
+_overrides = {}
+OVERRIDE_TTL = 300  # sek (5 min — god margin for HubSpots eventual consistency)
+
+def remember_override(hsid, fields):
+    cur = _overrides.get(hsid, {})
+    cur.update(fields); cur["_ts"] = time.time()
+    _overrides[hsid] = cur
+
+def get_override(hsid):
+    ov = _overrides.get(hsid)
+    if not ov:
+        return None
+    if time.time() - ov.get("_ts", 0) > OVERRIDE_TTL:
+        _overrides.pop(hsid, None); return None
+    return ov
 
 def req(path):
     r = urllib.request.Request(API + path, headers={"Authorization": "Bearer " + TOKEN})
@@ -97,19 +114,23 @@ def fetch():
     _cache.update(t=time.time(), data=(pinfo, by_proj), owners=owners)
     return pinfo, by_proj
 
+
 FAG = [("tavleverksted", "Tavleverksted"), ("utvikling", "Utvikling"),
        ("installasjon", "Installasjon"), ("drift_leveranse", "Drift/leveranse"), ("salg", "Salg")]
 FAG_LBL = dict(FAG)
 
-def build_tasks(show_all, fag=""):
+def build_tasks(show_all, fag="", owner=""):
     pinfo, by_proj = fetch()
     gtasks = []
+    today = datetime.date.today().isoformat()
     # sorter prosjekter alfabetisk
     for pid, pr in sorted(pinfo.items(), key=lambda kv: (kv[1].get("hs_name") or "").lower()):
         tlist = by_proj.get(pid, [])
         shown = tlist if show_all else [t for t in tlist if t["status"] != "COMPLETED"]
         if fag:
             shown = [t for t in shown if t.get("fag") == fag]
+        if owner:
+            shown = [t for t in shown if t.get("ownerid") == owner]
         if not shown:
             continue  # ingen (matchende) oppgaver → hopp over prosjektet
         name = pr.get("hs_name") or pid
@@ -118,21 +139,31 @@ def build_tasks(show_all, fag=""):
             gtasks.append({"id": f"p{pid}", "name": f"📁 {name}", "start": pstart, "end": ptarget,
                            "progress": 0, "custom_class": "bar-project"})
         for i, t in enumerate(sorted(shown, key=lambda x: (x["sd"] or x["date"] or "9999"))):
-            due = t["date"] or pstart or datetime.date.today().isoformat()
-            sd = t["sd"] or ""
+            # legg siste skriving (overstyring) oppå det lista returnerte — tåler HubSpot-etterslep
+            ov = get_override(t.get("hsid")) or {}
+            t_status = ov.get("status", t["status"])
+            t_date = ov.get("date", t["date"])
+            t_sd = ov.get("sd", t["sd"])
+            t_owner = ov.get("owner", t.get("owner") or "")
+            t_ownerid = ov.get("ownerid", t.get("ownerid") or "")
+            due = t_date or pstart or datetime.date.today().isoformat()
+            sd = t_sd or ""
             if sd:
                 s = min(sd, due); e = adddays(max(sd, due), 1)  # stolpe: startdato → forfall (inklusiv)
             else:
                 s = due; e = adddays(due, 1)                     # ingen startdato → 1-dags ved forfall
-            if t["status"] == "COMPLETED":
+            overdue = (t_status != "COMPLETED" and bool(t_date) and t_date[:10] < today)
+            if t_status == "COMPLETED":
                 cls = "bar-done"
             else:
                 cls = "fag-" + (t.get("fag") or "none")
+            if overdue:
+                cls += " overdue"
             faglbl = FAG_LBL.get(t.get("fag"), "—")
             gtasks.append({"id": f"t{pid}_{i}", "hsid": t.get("hsid"), "name": "   " + t["subject"],
-                           "start": s, "end": e, "progress": 100 if t["status"]=="COMPLETED" else 0,
-                           "custom_class": cls, "fag": faglbl, "sd": sd, "due": due,
-                           "owner": t.get("owner") or "", "ownerid": t.get("ownerid") or ""})
+                           "start": s, "end": e, "progress": 100 if t_status=="COMPLETED" else 0,
+                           "custom_class": cls, "fag": faglbl, "sd": sd, "due": due, "overdue": overdue,
+                           "status": t_status, "owner": t_owner, "ownerid": t_ownerid})
     return gtasks
 
 PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
@@ -165,6 +196,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t .st:hover{color:#fff}
  #side .t .own{color:#8fa0ab;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:120px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
  #side .t .own:hover{color:#59C2EA;text-decoration:underline}
+ #side .t.overdue{box-shadow:inset 3px 0 0 #E0533A}
+ #side .t.overdue .subj{color:#f2a99b}
  #side .t .ownsel,#side .t .stsel{flex:0 0 auto;font-size:11px;max-width:150px;background:#0f1720;color:#e6edf3;border:1px solid #0092D2;border-radius:4px}
  #g{flex:1;background:#fff;color:#111;overflow:auto}
  .gantt .bar-project .bar{fill:#005689}
@@ -178,6 +211,10 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  .gantt .fag-installasjon .bar{fill:#2EA04B}
  .gantt .fag-drift_leveranse .bar{fill:#8E5BD0}
  .gantt .fag-salg .bar{fill:#E0533A}
+ /* Forfalt (åpen oppgave forbi forfall): rød ramme rundt stolpen */
+ .gantt .overdue .bar{stroke:#E0533A;stroke-width:2.5px}
+ /* «I dag»-linje */
+ #todayline{pointer-events:none}
  /* Nøytraliser frappe sin lilla progress-overlay (#a3a3ff) — vi fargelegger hele stolpen selv via fag/bar-done */
  .gantt .bar-progress{fill:transparent}
  .gantt .bar-wrapper:hover .bar-progress,.gantt .bar-wrapper.active .bar-progress{fill:transparent}
@@ -185,6 +222,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  .filter{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
  .filter a{background:#0092D2;color:#fff;padding:5px 10px;border-radius:6px;text-decoration:none;font-size:12px}
  .filter a.active{background:#59C2EA;color:#003;font-weight:600}
+ .filter select{background:#0092D2;color:#fff;border:0;padding:5px 8px;border-radius:6px;font-size:12px;max-width:190px;cursor:pointer}
  .legend{display:flex;gap:12px;flex-wrap:wrap;padding:6px 18px;background:#0b131b;font-size:11px}
  .legend span{display:flex;align-items:center;gap:5px}
  .legend i{width:11px;height:11px;border-radius:2px;display:inline-block}
@@ -209,6 +247,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  <span><i style="background:#9bb0bf"></i>Fullført</span>
  <span class="sp" style="flex:1"></span>
  <span class="filter">Fagområde: __FILTER__</span>
+ <span class="filter" style="margin-left:14px">Eier: __OWNERFILTER__</span>
 </div>
 <div id="wrap"><aside id="side"></aside><div id="g"><svg id="gantt"></svg></div></div>
 <div id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99;
@@ -251,7 +290,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    b.onclick=function(){gantt.change_view_mode(b.dataset.vm);
      document.querySelectorAll('header button').forEach(function(x){x.classList.remove('active')});
      b.classList.add('active');
-     if(b.dataset.vm==='Week') setTimeout(relabelWeeks,0);};});
+     setTimeout(function(){ if(b.dataset.vm==='Week') relabelWeeks(); positionToday(); },0);};});
 
  // Nedre tidsakse-rad: vis ukenummer ("Uke NN") i ukevisning. Øvre rad = måned (frappe standard).
  function isoWeek(d){
@@ -267,6 +306,30 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    lts.forEach(function(el,i){ if(ds[i]) el.textContent='Uke '+isoWeek(ds[i]); });
  }
  relabelWeeks();
+
+ // «I dag»-linje: rød stiplet vertikal strek ved dagens dato
+ function positionToday(){
+   var svg=document.getElementById('gantt');
+   var ds=gantt.dates||[];
+   var line=document.getElementById('todayline');
+   var today=new Date(); today.setHours(0,0,0,0);
+   var cw=(gantt.options&&gantt.options.column_width)||30;
+   var x=null;
+   for(var i=0;i<ds.length-1;i++){
+     if(today>=ds[i] && today<ds[i+1]){ x=(i+(today-ds[i])/(ds[i+1]-ds[i]))*cw; break; }
+   }
+   if(x===null){ if(line) line.style.display='none'; return; }
+   var h=svg.getAttribute('height')||svg.clientHeight||3000;
+   if(!line){
+     line=document.createElementNS('http://www.w3.org/2000/svg','line');
+     line.id='todayline'; line.setAttribute('stroke','#E0533A'); line.setAttribute('stroke-width','2');
+     line.setAttribute('stroke-dasharray','5,4');
+   }
+   line.style.display=''; line.setAttribute('x1',x); line.setAttribute('x2',x);
+   line.setAttribute('y1',0); line.setAttribute('y2',h);
+   svg.appendChild(line);  // legg sist = ligg øverst
+ }
+ positionToday();
 
  // Angre siste endring: send revers til HubSpot, last siden på nytt så alt stemmer
  document.getElementById('undo').onclick=function(){
@@ -308,7 +371,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      if(k===t.status) op.selected=true; sel.appendChild(op);});
    el.replaceWith(sel); sel.focus();
    sel.onclick=function(e){e.stopPropagation();};
+   var handled=false;
    function fin(save){
+     if(handled) return; handled=true;   // onchange + onblur skal ikke begge kjøre
      var ns=sel.value, old=t.status||'NOT_STARTED';
      if(save && ns!==old){
        fetch('/status',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -335,10 +400,12 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    if(t.id[0]==='p'){
      d.className='p'; d.textContent=t.name.replace('📁','').trim();
    } else {
-     d.className='t';
+     d.className='t'+(t.overdue?' overdue':'');
      var dot=document.createElement('span'); dot.className='dot';
      dot.style.background = (t.progress===100) ? '#9bb0bf' : (COL[t.fag]||'#0092D2');
-     var s=document.createElement('span'); s.className='subj'; s.textContent=t.name.trim();
+     var s=document.createElement('span'); s.className='subj';
+     s.textContent=(t.overdue?'⚠ ':'')+t.name.trim();
+     if(t.overdue){ s.title='Forfalt: '+t.due; }
      d.appendChild(dot); d.appendChild(s);
      if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
    }
@@ -361,7 +428,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      if(String(o.id)===String(t.ownerid)) op.selected=true; sel.appendChild(op);});
    ow.replaceWith(sel); sel.focus();
    sel.onclick=function(e){e.stopPropagation();};
+   var handled=false;
    function done(save){
+     if(handled) return; handled=true;   // onchange + onblur skal ikke begge kjøre
      var nid=sel.value, oldid=String(t.ownerid||'');
      if(save && nid!==oldid){
        fetch('/owner',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -455,19 +524,19 @@ class H(BaseHTTPRequestHandler):
                     sd = str(payload.get("start") or "").strip()[:10]
                     props["bre_start_date"] = sd if len(sd) == 10 else ""  # date-property tar YYYY-MM-DD
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": props})
-                _cache.update(t=0, data=None)  # tving ny henting så visningen viser nye datoer
+                remember_override(hsid, {"date": date, "sd": props.get("bre_start_date", "")})
                 self._json(200, {"ok": True, "hsid": hsid, "date": date, "start": props.get("bre_start_date", "")})
             elif route == "/owner":
                 ownerid = str(payload.get("ownerid") or "").strip()
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hubspot_owner_id": ownerid}})
-                _cache.update(t=0, data=None)
+                remember_override(hsid, {"ownerid": ownerid, "owner": (_cache.get("owners") or {}).get(ownerid, "")})
                 self._json(200, {"ok": True, "hsid": hsid, "ownerid": ownerid})
             else:  # /status
                 status = str(payload.get("status") or "").strip()
                 if status not in ("NOT_STARTED", "IN_PROGRESS", "WAITING", "DEFERRED", "COMPLETED"):
                     self._json(400, {"ok": False, "error": "ugyldig status"}); return
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hs_task_status": status}})
-                _cache.update(t=0, data=None)
+                remember_override(hsid, {"status": status})
                 self._json(200, {"ok": True, "hsid": hsid, "status": status})
         except urllib.error.HTTPError as e:
             self._json(502, {"ok": False, "error": f"HubSpot {e.code}: {e.read().decode()[:120]}"})
@@ -479,28 +548,41 @@ class H(BaseHTTPRequestHandler):
             self.send_response(204); self.end_headers(); return
         if not self._authed():
             return
-        from urllib.parse import urlparse, parse_qs
+        from urllib.parse import urlparse, parse_qs, urlencode
         q = parse_qs(urlparse(self.path).query)
         show_all = q.get("all", ["0"])[0] == "1"
         fag = q.get("fag", [""])[0]
-        allq = "&all=1" if show_all else ""
+        owner = q.get("owner", [""])[0]
+        # bygger URL som bevarer alle aktive filtre; over-verdier med "" fjerner parameteren
+        def url(**over):
+            p = {"all": "1" if show_all else "", "fag": fag, "owner": owner}
+            p.update(over)
+            p = {k: v for k, v in p.items() if v}
+            return "?" + urlencode(p) if p else "?"
         try:
-            gtasks = build_tasks(show_all, fag)
+            gtasks = build_tasks(show_all, fag, owner)
             owners_list = sorted(
                 [{"id": oid, "name": nm} for oid, nm in (_cache.get("owners") or {}).items() if nm],
                 key=lambda o: o["name"].lower())
-            # filter-lenker (bevarer all=)
-            links = [f'<a href="?{("all=1" if show_all else "")}" class="{"active" if not fag else ""}">Alle</a>']
+            # fagområde-filter-lenker (bevarer all= og owner=)
+            links = [f'<a href="{url(fag="")}" class="{"active" if not fag else ""}">Alle</a>']
             for v, lbl in FAG:
-                links.append(f'<a href="?fag={v}{allq}" class="{"active" if fag==v else ""}">{lbl}</a>')
-            toggle = ("?" + ("fag="+fag if fag else "")) if show_all else ("?all=1" + ("&fag="+fag if fag else ""))
+                links.append(f'<a href="{url(fag=v)}" class="{"active" if fag==v else ""}">{lbl}</a>')
+            # eier-nedtrekk (bevarer all= og fag=)
+            opts = [f'<option value="{url(owner="")}"{" selected" if not owner else ""}>Alle eiere</option>']
+            for o in owners_list:
+                sel = " selected" if owner == o["id"] else ""
+                opts.append(f'<option value="{url(owner=o["id"])}"{sel}>{html.escape(o["name"])}</option>')
+            ownerfilter = '<select onchange="location.href=this.value">' + "".join(opts) + "</select>"
+            toggle = url(all=("" if show_all else "1"))
             body = PAGE.replace("__DATA__", json.dumps(gtasks, ensure_ascii=False)) \
                 .replace("__OWNERS__", json.dumps(owners_list, ensure_ascii=False)) \
                 .replace("__COUNT__", f"{len(gtasks)} rader") \
                 .replace("__TS__", time.strftime("%H:%M:%S")) \
                 .replace("__TOGGLE__", toggle) \
                 .replace("__TOGGLELBL__", "Vis fullførte" if not show_all else "Skjul fullførte") \
-                .replace("__FILTER__", " ".join(links))
+                .replace("__FILTER__", " ".join(links)) \
+                .replace("__OWNERFILTER__", ownerfilter)
             b = body.encode()
             self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
