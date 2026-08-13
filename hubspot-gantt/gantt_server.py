@@ -219,6 +219,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  .gantt .overdue .bar{stroke:#E0533A;stroke-width:2.5px}
  /* «I dag»-linje */
  #todayline{pointer-events:none}
+ /* Tydelige skillelinjer: tynn per kolonne (uke), tykkere ved periodestart (måned) */
+ .gantt .tick{stroke:#d3dbe1;stroke-width:1}
+ .gantt .tick.thick{stroke:#8ea1af;stroke-width:1.6}
  /* Nøytraliser frappe sin lilla progress-overlay (#a3a3ff) — vi fargelegger hele stolpen selv via fag/bar-done */
  .gantt .bar-progress{fill:transparent}
  .gantt .bar-wrapper:hover .bar-progress,.gantt .bar-wrapper.active .bar-progress{fill:transparent}
