@@ -200,7 +200,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  .meta{font-size:12px;opacity:.85}
  #wrap{display:flex;margin:14px;height:calc(100vh - 150px);border-radius:8px;overflow:hidden}
  /* padding-top = header_height(50)+padding(24)-bar/2 slik at rad-sentre matcher stolpe-sentre (første stolpe-senter = 85px) */
- #side{width:640px;min-width:520px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:62px;box-sizing:border-box}
+ #side{width:720px;min-width:560px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:62px;box-sizing:border-box}
  /* rad-pitch må være nøyaktig 46px (bar_height 22 + padding 24) for å følge tidslinja rad-for-rad */
  #side .p{height:46px;box-sizing:border-box;display:flex;align-items:center;padding:0 10px;color:#59C2EA;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  #side .p:hover{background:#12202c}
@@ -218,7 +218,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t .prio:hover{filter:brightness(1.3)}
  #side .t .own{color:#8fa0ab;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:84px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
  #side .t .own:hover{color:#59C2EA;text-decoration:underline}
- #side .t .utf{color:#8fb89f;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:80px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
+ #side .t .utf{color:#8fb89f;font-size:11px;flex:0 0 auto;white-space:nowrap;width:172px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
  #side .t .utf:hover{color:#59C2EA;text-decoration:underline}
  #side .t.overdue{box-shadow:inset 3px 0 0 #E0533A}
  #side .t.overdue .subj{color:#f2a99b}
@@ -523,9 +523,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
 
  // Utførende: klikk → nedtrekk (team) → lagre til HubSpot
  function utfEl(t){
-   var lbl = t.utf ? (UTFLBL[t.utf]||t.utf) : '+ utf.';
+   var lbl = t.utf ? (UTFLBL[t.utf]||t.utf) : '+ utførende';
    var el=document.createElement('span'); el.className='utf';
-   el.textContent = t.utf ? lbl.split(' ')[0] : '+ utf.'; if(!t.utf) el.style.opacity='.6';
+   el.textContent = lbl; if(!t.utf) el.style.opacity='.6';
    el.title = (t.utf?('Utførende: '+lbl):'Ingen utførende')+' — klikk for å endre';
    el.onclick=function(e){e.stopPropagation();openUtfSel(t,el);};
    return el;
