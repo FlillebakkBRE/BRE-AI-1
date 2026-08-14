@@ -330,7 +330,12 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    if(!gantt||gantt.options.view_mode!=='Week') return;
    var lts=document.querySelectorAll('#gantt .lower-text');
    var ds=gantt.dates||[];
-   lts.forEach(function(el,i){ if(ds[i]) el.textContent='Uke '+isoWeek(ds[i]); });
+   var cw=(gantt.options&&gantt.options.column_width)||30;
+   lts.forEach(function(el,i){ if(ds[i]){
+     el.textContent='Uke '+isoWeek(ds[i]);
+     el.setAttribute('x', i*cw + cw/2);      // sentrer i kolonnen
+     el.setAttribute('text-anchor','middle'); // så det er tydelig hvilken uke det gjelder
+   }});
  }
  relabelWeeks();
 
