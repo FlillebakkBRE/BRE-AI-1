@@ -319,7 +319,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    b.onclick=function(){gantt.change_view_mode(b.dataset.vm);
      document.querySelectorAll('header button').forEach(function(x){x.classList.remove('active')});
      b.classList.add('active');
-     setTimeout(function(){ if(b.dataset.vm==='Week') relabelWeeks(); positionToday(); },0);};});
+     setTimeout(function(){ if(b.dataset.vm==='Week') relabelWeeks(); positionToday(); scrollToToday(); },0);};});
 
  // Nedre tidsakse-rad: vis ukenummer ("Uke NN") i ukevisning. Øvre rad = måned (frappe standard).
  function isoWeek(d){
@@ -363,7 +363,19 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    line.setAttribute('y1',0); line.setAttribute('y2',h);
    svg.appendChild(line);  // legg sist = ligg øverst
  }
+ // Rull tidslinja til dagens uke (litt kontekst til venstre)
+ function scrollToToday(){
+   var g=document.getElementById('g'); var ds=gantt.dates||[];
+   if(!g||!ds.length) return;
+   var cw=(gantt.options&&gantt.options.column_width)||30;
+   var today=new Date(); today.setHours(0,0,0,0);
+   var x=null;
+   for(var i=0;i<ds.length-1;i++){ if(today>=ds[i]&&today<ds[i+1]){ x=(i+(today-ds[i])/(ds[i+1]-ds[i]))*cw; break; } }
+   if(x===null){ x = (today<ds[0]) ? 0 : ds.length*cw; }
+   g.scrollLeft = Math.max(0, x - 120);
+ }
  positionToday();
+ scrollToToday();
 
  // Angre siste endring: send revers til HubSpot, last siden på nytt så alt stemmer
  document.getElementById('undo').onclick=function(){
