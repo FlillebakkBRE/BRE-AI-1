@@ -346,14 +346,15 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  // Dagens x-posisjon — SAMME formel som frappe bruker for stolpene:
  // x = timer(fra gantt_start) / step * column_width
  function todayX(){
-   var gs=gantt.gantt_start; var ds=gantt.dates||[];
-   if(!gs){ if(!ds.length) return null; gs=ds[0]; }
-   var step=(gantt.options&&gantt.options.step)||24;
+   var ds=gantt.dates||[];
+   if(ds.length<2) return null;
    var cw=(gantt.options&&gantt.options.column_width)||30;
    var today=new Date(); today.setHours(0,0,0,0);
-   var hours=(today-new Date(gs))/3600000;
-   if(hours<0) return null;
-   return hours/step*cw;
+   var t0=+new Date(ds[0]), t1=+new Date(ds[1]);   // ms; én kolonne = ds[1]-ds[0]
+   var msPerCol=t1-t0;
+   if(!(msPerCol>0)) return null;
+   var x=(+today - t0)/msPerCol*cw;                 // lineær mapping av i dag
+   return isFinite(x) ? x : null;
  }
  // «I dag»-linje: rød stiplet vertikal strek ved dagens dato
  function positionToday(){
