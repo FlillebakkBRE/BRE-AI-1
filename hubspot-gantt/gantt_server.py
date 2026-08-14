@@ -223,7 +223,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t.overdue{box-shadow:inset 3px 0 0 #E0533A}
  #side .t.overdue .subj{color:#f2a99b}
  #side .t .ownsel,#side .t .stsel{flex:0 0 auto;font-size:11px;max-width:150px;background:#0f1720;color:#e6edf3;border:1px solid #0092D2;border-radius:4px}
- #g{flex:1;background:#fff;color:#111;overflow:auto}
+ /* min-width:0 er kritisk: uten den vokser flex-elementet til SVG-bredden og horisontal scroll/scrollLeft slutter å virke */
+ #g{flex:1;min-width:0;background:#fff;color:#111;overflow:auto}
  .gantt .bar-project .bar{fill:#005689}
  .gantt .hl .bar{stroke:#FAE100;stroke-width:3px}
  .gantt .grid-header{fill:#fff}
