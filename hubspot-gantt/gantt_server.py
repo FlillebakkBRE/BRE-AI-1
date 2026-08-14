@@ -261,6 +261,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  <button data-vm="Day">Dag</button>
  <button data-vm="Week" class="active">Uke</button>
  <button data-vm="Month">Måned</button>
+ <button id="today">📍 I dag</button>
  <button id="undo" disabled style="opacity:.5">↶ Angre</button>
  <a href="__TOGGLE__">__TOGGLELBL__</a>
  <a href="?">↻ Oppdater</a>
@@ -376,7 +377,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    g.scrollLeft = Math.max(0, x - 140);
  }
  positionToday();
- // Utsett scroll til etter at layouten er ferdig (ellers ignoreres scrollLeft)
+ // Manuell «I dag»-knapp — garantert etter layout
+ document.getElementById('today').onclick=function(){ positionToday(); scrollToToday(); };
+ // Auto: utsett scroll til etter at layouten er ferdig (ellers ignoreres scrollLeft)
  requestAnimationFrame(function(){ requestAnimationFrame(scrollToToday); });
  window.addEventListener('load', scrollToToday);
  setTimeout(scrollToToday, 300);
