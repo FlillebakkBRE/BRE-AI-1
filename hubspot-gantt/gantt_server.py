@@ -79,6 +79,18 @@ def list_all(v3, props, assoc=()):
         if not after: break
     return out
 
+def utf_options():
+    """Valg for «Utførende» (bre_utforende) — hentes én gang og caches."""
+    if _cache.get("utfopts") is not None:
+        return _cache["utfopts"]
+    try:
+        d = req("/crm/v3/properties/tasks/bre_utforende")
+        opts = [{"value": o["value"], "label": o["label"]} for o in d.get("options", []) if not o.get("hidden")]
+    except Exception:
+        opts = []
+    _cache["utfopts"] = opts
+    return opts
+
 def d10(x): return (x or "")[:10]
 def adddays(d, n): return (datetime.date.fromisoformat(d10(d)) + datetime.timedelta(days=n)).isoformat()
 
@@ -95,7 +107,7 @@ def fetch():
             owners[str(o["id"])] = nm or (o.get("email") or "")
     except Exception:
         pass
-    tasks = list_all("tasks", ["hs_task_subject", "hs_task_status", "hs_timestamp", "bre_fagomrade", "hubspot_owner_id", "bre_start_date", "hs_task_priority"], ["projects"])
+    tasks = list_all("tasks", ["hs_task_subject", "hs_task_status", "hs_timestamp", "bre_fagomrade", "hubspot_owner_id", "bre_start_date", "hs_task_priority", "bre_utforende"], ["projects"])
     by_proj = {}
     for t in tasks:
         pr = t["properties"]
@@ -111,6 +123,7 @@ def fetch():
                 "prio": pr.get("hs_task_priority") or "NONE",
                 "owner": own,
                 "ownerid": str(pr.get("hubspot_owner_id") or ""),
+                "utf": pr.get("bre_utforende") or "",
             })
     _cache.update(t=time.time(), data=(pinfo, by_proj), owners=owners)
     return pinfo, by_proj
@@ -148,6 +161,7 @@ def build_tasks(show_all, fag="", owner=""):
             t_owner = ov.get("owner", t.get("owner") or "")
             t_ownerid = ov.get("ownerid", t.get("ownerid") or "")
             t_prio = ov.get("prio", t.get("prio") or "NONE")
+            t_utf = ov.get("utf", t.get("utf") or "")
             due = t_date or pstart or datetime.date.today().isoformat()
             sd = t_sd or ""
             if sd:
@@ -165,7 +179,8 @@ def build_tasks(show_all, fag="", owner=""):
             gtasks.append({"id": f"t{pid}_{i}", "hsid": t.get("hsid"), "name": "   " + t["subject"],
                            "start": s, "end": e, "progress": 100 if t_status=="COMPLETED" else 0,
                            "custom_class": cls, "fag": faglbl, "sd": sd, "due": due, "overdue": overdue,
-                           "status": t_status, "prio": t_prio, "owner": t_owner, "ownerid": t_ownerid})
+                           "status": t_status, "prio": t_prio, "owner": t_owner, "ownerid": t_ownerid,
+                           "utf": t_utf})
     return gtasks
 
 PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
@@ -201,6 +216,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t .prio:hover{filter:brightness(1.3)}
  #side .t .own{color:#8fa0ab;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:84px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
  #side .t .own:hover{color:#59C2EA;text-decoration:underline}
+ #side .t .utf{color:#8fb89f;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:80px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
+ #side .t .utf:hover{color:#59C2EA;text-decoration:underline}
  #side .t.overdue{box-shadow:inset 3px 0 0 #E0533A}
  #side .t.overdue .subj{color:#f2a99b}
  #side .t .ownsel,#side .t .stsel{flex:0 0 auto;font-size:11px;max-width:150px;background:#0f1720;color:#e6edf3;border:1px solid #0092D2;border-radius:4px}
@@ -264,6 +281,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
 <script>
  var tasks = __DATA__;
  var OWNERS = __OWNERS__;   // [{id,name}] alle HubSpot-eiere
+ var UTFOPTS = __UTFOPTS__; // [{value,label}] utførende-valg
+ var UTFLBL = {}; UTFOPTS.forEach(function(o){UTFLBL[o.value]=o.label;});
  function fmtDate(x){var d=(x instanceof Date)?x:new Date(x);
    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
  function addDays(ds,n){var d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+n);return fmtDate(d);}
@@ -348,6 +367,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    if(it.type==='move'){ body.start=it.prevStart; body.date=it.prevDue; }
    else if(it.type==='owner') body.ownerid=it.prev;
    else if(it.type==='prio') body.prio=it.prev;
+   else if(it.type==='utf') body.utf=it.prev;
    else body.status=it.prev;
    this.disabled=true;
    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -452,9 +472,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      s.title=t.name.trim()+(t.overdue?'  ·  Forfalt: '+t.due:'');
      if(t.hsid){ d.appendChild(prioEl(t)); }   // prioritet helt til venstre
      d.appendChild(dot); d.appendChild(s);
-     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
+     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); d.appendChild(utfEl(t)); }
    }
-   d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio')) return; jump(id);};})(t.id);
+   d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio,.utf')) return; jump(id);};})(t.id);
    side.appendChild(d);
  });
 
@@ -489,6 +509,41 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
            sel.replaceWith(ownerEl(t));
          }).catch(function(e){toast('✖ '+e,false); sel.replaceWith(ownerEl(t));});
      } else { sel.replaceWith(ownerEl(t)); }
+   }
+   sel.onchange=function(){done(true);};
+   sel.onblur=function(){done(false);};
+ }
+
+ // Utførende: klikk → nedtrekk (team) → lagre til HubSpot
+ function utfEl(t){
+   var lbl = t.utf ? (UTFLBL[t.utf]||t.utf) : '+ utf.';
+   var el=document.createElement('span'); el.className='utf';
+   el.textContent = t.utf ? lbl.split(' ')[0] : '+ utf.'; if(!t.utf) el.style.opacity='.6';
+   el.title = (t.utf?('Utførende: '+lbl):'Ingen utførende')+' — klikk for å endre';
+   el.onclick=function(e){e.stopPropagation();openUtfSel(t,el);};
+   return el;
+ }
+ function openUtfSel(t, el){
+   var sel=document.createElement('select'); sel.className='ownsel';
+   var o0=document.createElement('option'); o0.value=''; o0.textContent='— ingen —'; sel.appendChild(o0);
+   UTFOPTS.forEach(function(o){var op=document.createElement('option');op.value=o.value;op.textContent=o.label;
+     if(o.value===t.utf) op.selected=true; sel.appendChild(op);});
+   el.replaceWith(sel); sel.focus();
+   sel.onclick=function(e){e.stopPropagation();};
+   var handled=false;
+   function done(save){
+     if(handled) return; handled=true;
+     var nv=sel.value, old=t.utf||'';
+     if(save && nv!==old){
+       fetch('/utforende',{method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({hsid:t.hsid,utf:nv})})
+         .then(function(r){return r.json();}).then(function(j){
+           if(j.ok){ t.utf=nv; pushUndo({type:'utf',hsid:t.hsid,prev:old,label:t.name.trim()});
+             toast('✔ Utførende: '+t.name.trim()+' → '+(nv?(UTFLBL[nv]||nv):'ingen'),true); }
+           else toast('✖ '+(j.error||'feil'),false);
+           sel.replaceWith(utfEl(t));
+         }).catch(function(e){toast('✖ '+e,false);sel.replaceWith(utfEl(t));});
+     } else { sel.replaceWith(utfEl(t)); }
    }
    sel.onchange=function(){done(true);};
    sel.onblur=function(){done(false);};
@@ -550,7 +605,7 @@ class H(BaseHTTPRequestHandler):
         if not self._authed():
             return
         route = self.path.split("?")[0]
-        if route not in ("/move", "/owner", "/status", "/prio"):
+        if route not in ("/move", "/owner", "/status", "/prio", "/utforende"):
             self._json(404, {"ok": False, "error": "ukjent endepunkt"}); return
         try:
             n = int(self.headers.get("Content-Length", 0))
@@ -590,6 +645,14 @@ class H(BaseHTTPRequestHandler):
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hs_task_priority": prio}})
                 remember_override(hsid, {"prio": prio})
                 self._json(200, {"ok": True, "hsid": hsid, "prio": prio})
+            elif route == "/utforende":
+                utf = str(payload.get("utf") or "").strip()
+                valid = {o["value"] for o in utf_options()}
+                if utf and utf not in valid:
+                    self._json(400, {"ok": False, "error": " ugyldig utførende"}); return
+                patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"bre_utforende": utf}})
+                remember_override(hsid, {"utf": utf})
+                self._json(200, {"ok": True, "hsid": hsid, "utf": utf})
         except urllib.error.HTTPError as e:
             self._json(502, {"ok": False, "error": f"HubSpot {e.code}: {e.read().decode()[:120]}"})
         except Exception as e:
@@ -629,6 +692,7 @@ class H(BaseHTTPRequestHandler):
             toggle = url(all=("" if show_all else "1"))
             body = PAGE.replace("__DATA__", json.dumps(gtasks, ensure_ascii=False)) \
                 .replace("__OWNERS__", json.dumps(owners_list, ensure_ascii=False)) \
+                .replace("__UTFOPTS__", json.dumps(utf_options(), ensure_ascii=False)) \
                 .replace("__COUNT__", f"{len(gtasks)} rader") \
                 .replace("__TS__", time.strftime("%H:%M:%S")) \
                 .replace("__TOGGLE__", toggle) \
