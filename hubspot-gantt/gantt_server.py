@@ -183,11 +183,11 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  .meta{font-size:12px;opacity:.85}
  #wrap{display:flex;margin:14px;height:calc(100vh - 150px);border-radius:8px;overflow:hidden}
  /* padding-top = header_height(50)+padding/2-rest slik at rad-sentre matcher stolpe-sentre (første stolpe-senter = 71px) */
- #side{width:560px;min-width:460px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:56px;box-sizing:border-box}
+ #side{width:640px;min-width:520px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:56px;box-sizing:border-box}
  /* rad-pitch må være nøyaktig 30px (bar_height 18 + padding 12) for å følge tidslinja rad-for-rad */
  #side .p{height:30px;box-sizing:border-box;display:flex;align-items:center;padding:0 10px;color:#59C2EA;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  #side .p:hover{background:#12202c}
- #side .t{height:30px;box-sizing:border-box;padding:0 10px 0 16px;color:#c8d3dc;cursor:pointer;display:flex;align-items:center;gap:8px}
+ #side .t{height:30px;box-sizing:border-box;padding:0 12px 0 16px;color:#c8d3dc;cursor:pointer;display:flex;align-items:center;gap:14px}
  #side .t:hover{background:#12202c}
  #side .dot{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
  /* emne krymper og forkortes → gir plass til status + eier */
@@ -198,7 +198,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t .st:hover{color:#fff}
  #side .t .prio{flex:0 0 auto;width:16px;text-align:center;font-size:13px;cursor:pointer;line-height:1}
  #side .t .prio:hover{filter:brightness(1.3)}
- #side .t .own{color:#8fa0ab;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:120px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
+ #side .t .own{color:#8fa0ab;font-size:10.5px;flex:0 0 auto;white-space:nowrap;width:84px;overflow:hidden;text-overflow:ellipsis;text-align:right;cursor:pointer}
  #side .t .own:hover{color:#59C2EA;text-decoration:underline}
  #side .t.overdue{box-shadow:inset 3px 0 0 #E0533A}
  #side .t.overdue .subj{color:#f2a99b}
@@ -448,7 +448,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      dot.style.background = (t.progress===100) ? '#9bb0bf' : (COL[t.fag]||'#0092D2');
      var s=document.createElement('span'); s.className='subj';
      s.textContent=(t.overdue?'⚠ ':'')+t.name.trim();
-     if(t.overdue){ s.title='Forfalt: '+t.due; }
+     s.title=t.name.trim()+(t.overdue?'  ·  Forfalt: '+t.due:'');
      if(t.hsid){ d.appendChild(prioEl(t)); }   // prioritet helt til venstre
      d.appendChild(dot); d.appendChild(s);
      if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
@@ -460,8 +460,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  // Eier-visning + klikk → nedtrekk med alle eiere → lagre til HubSpot
  function ownerEl(t){
    var ow=document.createElement('span'); ow.className='own';
-   ow.textContent=t.owner||'+ eier'; if(!t.owner) ow.style.opacity='.6';
-   ow.title='Klikk for å endre eier';
+   ow.textContent=t.owner?t.owner.split(' ')[0]:'+ eier'; if(!t.owner) ow.style.opacity='.6';
+   ow.title=(t.owner||'Ingen eier')+' — klikk for å endre';
    ow.onclick=function(e){ e.stopPropagation(); openOwnerSel(t, ow); };
    return ow;
  }
