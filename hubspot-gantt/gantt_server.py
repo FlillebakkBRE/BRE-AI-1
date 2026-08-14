@@ -375,7 +375,10 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    g.scrollLeft = Math.max(0, x - 120);
  }
  positionToday();
- scrollToToday();
+ // Utsett scroll til etter at layouten er ferdig (ellers ignoreres scrollLeft)
+ requestAnimationFrame(function(){ requestAnimationFrame(scrollToToday); });
+ window.addEventListener('load', scrollToToday);
+ setTimeout(scrollToToday, 300);
 
  // Angre siste endring: send revers til HubSpot, last siden på nytt så alt stemmer
  document.getElementById('undo').onclick=function(){
