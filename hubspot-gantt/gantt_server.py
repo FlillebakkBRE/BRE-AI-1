@@ -182,16 +182,17 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  header button.active{background:#59C2EA;color:#003}
  .meta{font-size:12px;opacity:.85}
  #wrap{display:flex;margin:14px;height:calc(100vh - 150px);border-radius:8px;overflow:hidden}
- /* padding-top = header_height(50)+padding/2-rest slik at rad-sentre matcher stolpe-sentre (første stolpe-senter = 71px) */
- #side{width:640px;min-width:520px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:56px;box-sizing:border-box}
- /* rad-pitch må være nøyaktig 30px (bar_height 18 + padding 12) for å følge tidslinja rad-for-rad */
- #side .p{height:30px;box-sizing:border-box;display:flex;align-items:center;padding:0 10px;color:#59C2EA;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+ /* padding-top = header_height(50)+padding(24)-bar/2 slik at rad-sentre matcher stolpe-sentre (første stolpe-senter = 85px) */
+ #side{width:640px;min-width:520px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:62px;box-sizing:border-box}
+ /* rad-pitch må være nøyaktig 46px (bar_height 22 + padding 24) for å følge tidslinja rad-for-rad */
+ #side .p{height:46px;box-sizing:border-box;display:flex;align-items:center;padding:0 10px;color:#59C2EA;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  #side .p:hover{background:#12202c}
- #side .t{height:30px;box-sizing:border-box;padding:0 12px 0 16px;color:#c8d3dc;cursor:pointer;display:flex;align-items:center;gap:14px}
+ #side .t{height:46px;box-sizing:border-box;padding:0 12px 0 16px;color:#c8d3dc;cursor:pointer;display:flex;align-items:center;gap:14px}
  #side .t:hover{background:#12202c}
  #side .dot{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
- /* emne vises i sin helhet (ingen avkorting); vokser for å fylle, krymper aldri under egen tekst */
- #side .t .subj{white-space:nowrap;flex:1 0 auto}
+ /* emne brytes over inntil to linjer i stedet for å kappes på én linje */
+ #side .t .subj{flex:1 1 auto;min-width:0;white-space:normal;line-height:1.2;
+   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
  /* status: kompakt farget prikk + kort etikett, fast bredde så kolonnene ligger jevnt */
  #side .t .st{flex:0 0 auto;display:flex;align-items:center;gap:5px;width:96px;font-size:10.5px;cursor:pointer;white-space:nowrap;color:#c8d3dc}
  #side .t .st .sdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
@@ -275,7 +276,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    b.disabled=!undoStack.length; b.style.opacity=undoStack.length?'1':'.5';
    b.textContent='↶ Angre'+(undoStack.length>1?' ('+undoStack.length+')':'');}
  function pushUndo(it){undoStack.push(it);refreshUndo();}
- var gantt = new Gantt("#gantt", tasks, {view_mode:"Week", date_format:"YYYY-MM-DD", bar_height:18, padding:12,
+ var gantt = new Gantt("#gantt", tasks, {view_mode:"Week", date_format:"YYYY-MM-DD", bar_height:22, padding:24,
    custom_popup_html:function(t){
      var per=t.sd?(t.sd+' → '+t.due):('Forfall: '+(t.due||t.start));
      return '<div style="padding:6px 10px;font-size:12px">'+t.name.trim()+(t.fag&&t.fag!=='—'?'<br><b>'+t.fag+'</b>':'')+(t.owner?'<br>👤 '+t.owner:'')+'<br>📅 '+per+'</div>';},
