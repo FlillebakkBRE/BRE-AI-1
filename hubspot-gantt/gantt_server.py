@@ -341,17 +341,23 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  }
  relabelWeeks();
 
+ // Dagens x-posisjon — SAMME formel som frappe bruker for stolpene:
+ // x = timer(fra gantt_start) / step * column_width
+ function todayX(){
+   var gs=gantt.gantt_start; var ds=gantt.dates||[];
+   if(!gs){ if(!ds.length) return null; gs=ds[0]; }
+   var step=(gantt.options&&gantt.options.step)||24;
+   var cw=(gantt.options&&gantt.options.column_width)||30;
+   var today=new Date(); today.setHours(0,0,0,0);
+   var hours=(today-new Date(gs))/3600000;
+   if(hours<0) return null;
+   return hours/step*cw;
+ }
  // «I dag»-linje: rød stiplet vertikal strek ved dagens dato
  function positionToday(){
    var svg=document.getElementById('gantt');
-   var ds=gantt.dates||[];
    var line=document.getElementById('todayline');
-   var today=new Date(); today.setHours(0,0,0,0);
-   var cw=(gantt.options&&gantt.options.column_width)||30;
-   var x=null;
-   for(var i=0;i<ds.length-1;i++){
-     if(today>=ds[i] && today<ds[i+1]){ x=(i+(today-ds[i])/(ds[i+1]-ds[i]))*cw; break; }
-   }
+   var x=todayX();
    if(x===null){ if(line) line.style.display='none'; return; }
    var h=svg.getAttribute('height')||svg.clientHeight||3000;
    if(!line){
@@ -365,14 +371,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  }
  // Rull tidslinja til dagens uke (litt kontekst til venstre)
  function scrollToToday(){
-   var g=document.getElementById('g'); var ds=gantt.dates||[];
-   if(!g||!ds.length) return;
-   var cw=(gantt.options&&gantt.options.column_width)||30;
-   var today=new Date(); today.setHours(0,0,0,0);
-   var x=null;
-   for(var i=0;i<ds.length-1;i++){ if(today>=ds[i]&&today<ds[i+1]){ x=(i+(today-ds[i])/(ds[i+1]-ds[i]))*cw; break; } }
-   if(x===null){ x = (today<ds[0]) ? 0 : ds.length*cw; }
-   g.scrollLeft = Math.max(0, x - 120);
+   var g=document.getElementById('g'); var x=todayX();
+   if(!g||x===null) return;
+   g.scrollLeft = Math.max(0, x - 140);
  }
  positionToday();
  // Utsett scroll til etter at layouten er ferdig (ellers ignoreres scrollLeft)
