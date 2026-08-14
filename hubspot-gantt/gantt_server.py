@@ -190,8 +190,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  #side .t{height:30px;box-sizing:border-box;padding:0 12px 0 16px;color:#c8d3dc;cursor:pointer;display:flex;align-items:center;gap:14px}
  #side .t:hover{background:#12202c}
  #side .dot{width:9px;height:9px;border-radius:2px;flex:0 0 auto}
- /* emne krymper og forkortes → gir plass til status + eier */
- #side .t .subj{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1 1 auto;min-width:0}
+ /* emne vises i sin helhet (ingen avkorting); vokser for å fylle, krymper aldri under egen tekst */
+ #side .t .subj{white-space:nowrap;flex:1 0 auto}
  /* status: kompakt farget prikk + kort etikett, fast bredde så kolonnene ligger jevnt */
  #side .t .st{flex:0 0 auto;display:flex;align-items:center;gap:5px;width:96px;font-size:10.5px;cursor:pointer;white-space:nowrap;color:#c8d3dc}
  #side .t .st .sdot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
