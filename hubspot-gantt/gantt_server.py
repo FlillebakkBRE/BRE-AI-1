@@ -183,7 +183,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  .meta{font-size:12px;opacity:.85}
  #wrap{display:flex;margin:14px;height:calc(100vh - 150px);border-radius:8px;overflow:hidden}
  /* padding-top = header_height(50)+padding/2-rest slik at rad-sentre matcher stolpe-sentre (første stolpe-senter = 71px) */
- #side{width:520px;min-width:420px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:56px;box-sizing:border-box}
+ #side{width:560px;min-width:460px;background:#0b131b;overflow:auto;font-size:13px;border-right:2px solid #005689;padding-top:56px;box-sizing:border-box}
  /* rad-pitch må være nøyaktig 30px (bar_height 18 + padding 12) for å følge tidslinja rad-for-rad */
  #side .p{height:30px;box-sizing:border-box;display:flex;align-items:center;padding:0 10px;color:#59C2EA;font-weight:600;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  #side .p:hover{background:#12202c}
@@ -449,8 +449,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      var s=document.createElement('span'); s.className='subj';
      s.textContent=(t.overdue?'⚠ ':'')+t.name.trim();
      if(t.overdue){ s.title='Forfalt: '+t.due; }
+     if(t.hsid){ d.appendChild(prioEl(t)); }   // prioritet helt til venstre
      d.appendChild(dot); d.appendChild(s);
-     if(t.hsid){ d.appendChild(prioEl(t)); d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
+     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); }
    }
    d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio')) return; jump(id);};})(t.id);
    side.appendChild(d);
