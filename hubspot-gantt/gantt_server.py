@@ -472,7 +472,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      s.title=t.name.trim()+(t.overdue?'  ·  Forfalt: '+t.due:'');
      if(t.hsid){ d.appendChild(prioEl(t)); }   // prioritet helt til venstre
      d.appendChild(dot); d.appendChild(s);
-     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(ownerEl(t)); d.appendChild(utfEl(t)); }
+     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(utfEl(t)); }
    }
    d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio,.utf')) return; jump(id);};})(t.id);
    side.appendChild(d);
