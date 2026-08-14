@@ -257,7 +257,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
 </style></head><body>
 <header>
  <h1>BRE · Prosjekt-Gantt</h1>
- <span class="meta">__COUNT__ · __TS__ · dra = flytt · kant = juster start/forfall</span>
+ <span class="meta">__COUNT__ · __TS__ · dra = flytt · kant = juster start/forfall · <span id="dbg" style="color:#FAE100"></span></span>
  <span class="sp"></span>
  <button data-vm="Day">Dag</button>
  <button data-vm="Week" class="active">Uke</button>
@@ -321,7 +321,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    b.onclick=function(){gantt.change_view_mode(b.dataset.vm);
      document.querySelectorAll('header button').forEach(function(x){x.classList.remove('active')});
      b.classList.add('active');
-     setTimeout(function(){ if(b.dataset.vm==='Week') relabelWeeks(); positionToday(); scrollToToday(); },0);};});
+     setTimeout(function(){ ensureSvgWidth(); if(b.dataset.vm==='Week') relabelWeeks(); positionToday(); scrollToToday(); },0);};});
 
  // Nedre tidsakse-rad: vis ukenummer ("Uke NN") i ukevisning. Øvre rad = måned (frappe standard).
  function isoWeek(d){
@@ -345,6 +345,14 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
 
  // Dagens x-posisjon — SAMME formel som frappe bruker for stolpene:
  // x = timer(fra gantt_start) / step * column_width
+ // SVG defaulter til 100% av containeren hvis den mangler eksplisitt width → alt utover klippes.
+ // Tving full bredde = antall kolonner × kolonnebredde, så tidslinja er bred nok til å scrolle.
+ function ensureSvgWidth(){
+   var svg=document.getElementById('gantt');
+   var cw=(gantt.options&&gantt.options.column_width)||30;
+   var n=(gantt.dates||[]).length;
+   if(svg&&n>0){ var w=n*cw+20; svg.setAttribute('width', w); svg.style.width=w+'px'; }
+ }
  function todayX(){
    var ds=gantt.dates||[];
    if(ds.length<2) return null;
@@ -374,9 +382,13 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  }
  // Rull tidslinja til dagens uke (litt kontekst til venstre)
  function scrollToToday(){
+   ensureSvgWidth();
    var g=document.getElementById('g'); var x=todayX();
-   if(!g||x===null) return;
+   var dbg=document.getElementById('dbg');
+   if(!g){ return; }
+   if(x===null){ if(dbg) dbg.textContent='dbg: x=null (dates='+((gantt.dates||[]).length)+')'; return; }
    g.scrollLeft = Math.max(0, x - 140);
+   if(dbg) dbg.textContent='dbg: dates='+((gantt.dates||[]).length)+' cw='+((gantt.options&&gantt.options.column_width))+' x='+Math.round(x)+' sw='+g.scrollWidth+' cl='+g.clientWidth+' → sl='+g.scrollLeft;
  }
  positionToday();
  // Manuell «I dag»-knapp — garantert etter layout
