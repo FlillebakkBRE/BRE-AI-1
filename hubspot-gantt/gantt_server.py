@@ -133,7 +133,7 @@ FAG = [("tavleverksted", "Tavleverksted"), ("utvikling", "Utvikling"),
        ("installasjon", "Installasjon"), ("drift_leveranse", "Drift/leveranse"), ("salg", "Salg")]
 FAG_LBL = dict(FAG)
 
-def build_tasks(show_all, fag="", owner=""):
+def build_tasks(show_all, fag="", owner="", utf=""):
     pinfo, by_proj = fetch()
     gtasks = []
     today = datetime.date.today().isoformat()
@@ -145,6 +145,8 @@ def build_tasks(show_all, fag="", owner=""):
             shown = [t for t in shown if t.get("fag") == fag]
         if owner:
             shown = [t for t in shown if t.get("ownerid") == owner]
+        if utf:
+            shown = [t for t in shown if (get_override(t.get("hsid")) or {}).get("utf", t.get("utf")) == utf]
         if not shown:
             continue  # ingen (matchende) oppgaver → hopp over prosjektet
         name = pr.get("hs_name") or pid
@@ -272,7 +274,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  <span><i style="background:#9bb0bf"></i>Fullført</span>
  <span class="sp" style="flex:1"></span>
  <span class="filter">Fagområde: __FILTER__</span>
- <span class="filter" style="margin-left:14px">Eier: __OWNERFILTER__</span>
+ <span class="filter" style="margin-left:14px">Utførende: __OWNERFILTER__</span>
 </div>
 <div id="wrap"><aside id="side"></aside><div id="g"><svg id="gantt"></svg></div></div>
 <div id="toast" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99;
@@ -672,27 +674,27 @@ class H(BaseHTTPRequestHandler):
         q = parse_qs(urlparse(self.path).query)
         show_all = q.get("all", ["0"])[0] == "1"
         fag = q.get("fag", [""])[0]
-        owner = q.get("owner", [""])[0]
+        utf = q.get("utf", [""])[0]
         # bygger URL som bevarer alle aktive filtre; over-verdier med "" fjerner parameteren
         def url(**over):
-            p = {"all": "1" if show_all else "", "fag": fag, "owner": owner}
+            p = {"all": "1" if show_all else "", "fag": fag, "utf": utf}
             p.update(over)
             p = {k: v for k, v in p.items() if v}
             return "?" + urlencode(p) if p else "?"
         try:
-            gtasks = build_tasks(show_all, fag, owner)
+            gtasks = build_tasks(show_all, fag, "", utf)
             owners_list = sorted(
                 [{"id": oid, "name": nm} for oid, nm in (_cache.get("owners") or {}).items() if nm],
                 key=lambda o: o["name"].lower())
-            # fagområde-filter-lenker (bevarer all= og owner=)
+            # fagområde-filter-lenker (bevarer all= og utf=)
             links = [f'<a href="{url(fag="")}" class="{"active" if not fag else ""}">Alle</a>']
             for v, lbl in FAG:
                 links.append(f'<a href="{url(fag=v)}" class="{"active" if fag==v else ""}">{lbl}</a>')
-            # eier-nedtrekk (bevarer all= og fag=)
-            opts = [f'<option value="{url(owner="")}"{" selected" if not owner else ""}>Alle eiere</option>']
-            for o in owners_list:
-                sel = " selected" if owner == o["id"] else ""
-                opts.append(f'<option value="{url(owner=o["id"])}"{sel}>{html.escape(o["name"])}</option>')
+            # utførende-nedtrekk (bevarer all= og fag=)
+            opts = [f'<option value="{url(utf="")}"{" selected" if not utf else ""}>Alle utførende</option>']
+            for o in utf_options():
+                sel = " selected" if utf == o["value"] else ""
+                opts.append(f'<option value="{url(utf=o["value"])}"{sel}>{html.escape(o["label"])}</option>')
             ownerfilter = '<select onchange="location.href=this.value">' + "".join(opts) + "</select>"
             toggle = url(all=("" if show_all else "1"))
             body = PAGE.replace("__DATA__", json.dumps(gtasks, ensure_ascii=False)) \
