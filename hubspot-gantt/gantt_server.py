@@ -257,7 +257,7 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
 </style></head><body>
 <header>
  <h1>BRE · Prosjekt-Gantt</h1>
- <span class="meta">__COUNT__ · __TS__ · dra = flytt · kant = juster start/forfall · <span id="dbg" style="color:#FAE100"></span></span>
+ <span class="meta">__COUNT__ · __TS__ · dra = flytt · kant = juster start/forfall</span>
  <span class="sp"></span>
  <button data-vm="Day">Dag</button>
  <button data-vm="Week" class="active">Uke</button>
@@ -347,11 +347,24 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  // x = timer(fra gantt_start) / step * column_width
  // SVG defaulter til 100% av containeren hvis den mangler eksplisitt width → alt utover klippes.
  // Tving full bredde = antall kolonner × kolonnebredde, så tidslinja er bred nok til å scrolle.
- function ensureSvgWidth(){
-   var svg=document.getElementById('gantt');
+ function fullWidth(){
    var cw=(gantt.options&&gantt.options.column_width)||30;
-   var n=(gantt.dates||[]).length;
-   if(svg&&n>0){ var w=n*cw+20; svg.setAttribute('width', w); svg.style.width=w+'px'; }
+   return ((gantt.dates||[]).length*cw)+20;
+ }
+ function ensureSvgWidth(){
+   var svg=document.getElementById('gantt'); if(!svg) return;
+   var w=fullWidth(); if(w<=20) return;
+   svg.setAttribute('width', w); svg.style.width=w+'px'; svg.style.minWidth=w+'px';
+   // frappe pakker ofte svg i en container-div — tving den bred også
+   var p=svg.parentElement;
+   while(p && p.id!=='g'){ p.style.minWidth=w+'px'; p.style.width=w+'px'; p=p.parentElement; }
+ }
+ // Elementet som faktisk kan scrolle horisontalt (svg-container eller #g)
+ function hScroller(){
+   var svg=document.getElementById('gantt'), g=document.getElementById('g');
+   var el=svg&&svg.parentElement;
+   while(el && el!==g){ if(el.scrollWidth>el.clientWidth+2) return el; el=el.parentElement; }
+   return g;
  }
  function todayX(){
    var ds=gantt.dates||[];
@@ -383,12 +396,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  // Rull tidslinja til dagens uke (litt kontekst til venstre)
  function scrollToToday(){
    ensureSvgWidth();
-   var g=document.getElementById('g'); var x=todayX();
-   var dbg=document.getElementById('dbg');
-   if(!g){ return; }
-   if(x===null){ if(dbg) dbg.textContent='dbg: x=null (dates='+((gantt.dates||[]).length)+')'; return; }
-   g.scrollLeft = Math.max(0, x - 140);
-   if(dbg) dbg.textContent='dbg: dates='+((gantt.dates||[]).length)+' cw='+((gantt.options&&gantt.options.column_width))+' x='+Math.round(x)+' sw='+g.scrollWidth+' cl='+g.clientWidth+' → sl='+g.scrollLeft;
+   var x=todayX(); var sc=hScroller();
+   if(!sc||x===null) return;
+   sc.scrollLeft = Math.max(0, x - 140);
  }
  positionToday();
  // Manuell «I dag»-knapp — garantert etter layout
