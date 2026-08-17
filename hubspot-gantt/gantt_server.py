@@ -151,9 +151,21 @@ def build_tasks(show_all, fag="", owner="", utf=""):
             continue  # ingen (matchende) oppgaver → hopp over prosjektet
         name = pr.get("hs_name") or pid
         pstart = d10(pr.get("hs_start_date")); ptarget = d10(pr.get("hs_target_due_date"))
+        # prosjekt-header vises alltid: bruk prosjektdatoer om satt, ellers utled spenn fra oppgavene
         if pstart and ptarget:
-            gtasks.append({"id": f"p{pid}", "name": f"📁 {name}", "start": pstart, "end": ptarget,
-                           "progress": 0, "custom_class": "bar-project"})
+            hstart, hend = pstart, ptarget
+        else:
+            ds = []
+            for t in shown:
+                ov = get_override(t.get("hsid")) or {}
+                for x in (ov.get("date", t["date"]) or "", ov.get("sd", t["sd"]) or ""):
+                    if x: ds.append(x[:10])
+            hstart = pstart or (min(ds) if ds else today)
+            hend = ptarget or (max(ds) if ds else hstart)
+            if hend <= hstart:
+                hend = adddays(hstart, 1)
+        gtasks.append({"id": f"p{pid}", "name": f"📁 {name}", "start": hstart, "end": hend,
+                       "progress": 0, "custom_class": "bar-project"})
         for i, t in enumerate(sorted(shown, key=lambda x: (x["sd"] or x["date"] or "9999"))):
             # legg siste skriving (overstyring) oppå det lista returnerte — tåler HubSpot-etterslep
             ov = get_override(t.get("hsid")) or {}
