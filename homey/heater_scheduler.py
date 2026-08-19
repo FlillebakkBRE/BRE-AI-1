@@ -25,6 +25,8 @@ DEVICES = [
     {"id": "46772c70-1640-4869-a98f-6b7b80477b8b", "name": "AHB Varmovn (Alf Helge)", "comfort": 22, "eco": 17},
     {"id": "10bf35b7-1af0-4dc1-ae8c-39156b6300ea", "name": "Verksted Ovn", "comfort": 22, "eco": 17},
     {"id": "796d7233-0de5-41cf-8365-5d5033b18bf8", "name": "JTK Varmovn (Jan Tore)", "comfort": 23, "eco": 17},
+    {"id": "8bb02ad1-1f3e-4a40-a782-b04529e95926", "name": "Møterom ovn H", "comfort": 22, "eco": 17},
+    {"id": "2fafa833-610d-491c-89a9-8dbd85b64640", "name": "Møterom ovn V", "comfort": 22, "eco": 17},
 ]
 POLL = 300  # sekunder
 
