@@ -68,6 +68,20 @@ def patch(path, body):
             raise
     raise RuntimeError("rate-limit")
 
+def send(method, path, body=None):
+    data = json.dumps(body).encode() if body is not None else None
+    r = urllib.request.Request(API + path, data=data, method=method,
+        headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json"})
+    for a in range(5):
+        try:
+            with urllib.request.urlopen(r, timeout=60) as resp:
+                raw = resp.read().decode()
+                return json.loads(raw) if raw else {}
+        except urllib.error.HTTPError as e:
+            if e.code == 429: time.sleep(2*(a+1)); continue
+            raise
+    raise RuntimeError("rate-limit")
+
 def list_all(v3, props, assoc=()):
     out, after = [], None
     while True:
@@ -107,7 +121,7 @@ def fetch():
             owners[str(o["id"])] = nm or (o.get("email") or "")
     except Exception:
         pass
-    tasks = list_all("tasks", ["hs_task_subject", "hs_task_status", "hs_timestamp", "bre_fagomrade", "hubspot_owner_id", "bre_start_date", "hs_task_priority", "bre_utforende"], ["projects"])
+    tasks = list_all("tasks", ["hs_task_subject", "hs_task_status", "hs_timestamp", "bre_fagomrade", "hubspot_owner_id", "bre_start_date", "hs_task_priority", "bre_utforende", "hs_task_body"], ["projects"])
     by_proj = {}
     for t in tasks:
         pr = t["properties"]
@@ -124,6 +138,7 @@ def fetch():
                 "owner": own,
                 "ownerid": str(pr.get("hubspot_owner_id") or ""),
                 "utf": pr.get("bre_utforende") or "",
+                "note": pr.get("hs_task_body") or "",
             })
     _cache.update(t=time.time(), data=(pinfo, by_proj), owners=owners)
     return pinfo, by_proj
@@ -176,6 +191,8 @@ def build_tasks(show_all, fag="", owner="", utf=""):
             t_ownerid = ov.get("ownerid", t.get("ownerid") or "")
             t_prio = ov.get("prio", t.get("prio") or "NONE")
             t_utf = ov.get("utf", t.get("utf") or "")
+            t_subject = ov.get("subject", t["subject"])
+            t_note = ov.get("note", t.get("note") or "")
             due = t_date or pstart or datetime.date.today().isoformat()
             sd = t_sd or ""
             if sd:
@@ -190,12 +207,134 @@ def build_tasks(show_all, fag="", owner="", utf=""):
             if overdue:
                 cls += " overdue"
             faglbl = FAG_LBL.get(t.get("fag"), "—")
-            gtasks.append({"id": f"t{pid}_{i}", "hsid": t.get("hsid"), "name": "   " + t["subject"],
+            gtasks.append({"id": f"t{pid}_{i}", "hsid": t.get("hsid"), "name": "   " + t_subject,
                            "start": s, "end": e, "progress": 100 if t_status=="COMPLETED" else 0,
                            "custom_class": cls, "fag": faglbl, "sd": sd, "due": due, "overdue": overdue,
                            "status": t_status, "prio": t_prio, "owner": t_owner, "ownerid": t_ownerid,
-                           "utf": t_utf})
+                           "utf": t_utf, "note": t_note})
     return gtasks
+
+
+def _task_span(t):
+    """(status, utførende, start, end-eksklusiv) for en oppgave, med overstyring."""
+    ov = get_override(t.get("hsid")) or {}
+    status = ov.get("status", t["status"])
+    date = (ov.get("date", t["date"]) or datetime.date.today().isoformat())[:10]
+    sd = (ov.get("sd", t["sd"]) or "")[:10]
+    utf = ov.get("utf", t.get("utf") or "")
+    if sd:
+        s = min(sd, date); e = adddays(max(sd, date), 1)
+    else:
+        s = date; e = adddays(date, 1)
+    return status, utf, s, e
+
+
+def build_resource(weeks=10):
+    """Belegg per utførende per uke (antall aktive oppgaver som overlapper uka)."""
+    _pinfo, by_proj = fetch()
+    labels = {o["value"]: o["label"] for o in utf_options()}
+    today = datetime.date.today()
+    monday = today - datetime.timedelta(days=today.weekday())
+    wstarts = [monday + datetime.timedelta(days=7 * i) for i in range(weeks)]
+    people = {}
+    def row(key, label):
+        people.setdefault(key, {"label": label, "weeks": [0] * weeks, "total": 0})
+        return people[key]
+    for v, l in labels.items():
+        row(v, l)  # vis alle definerte utførende, også de uten oppgaver
+    for _pid, tlist in by_proj.items():
+        for t in tlist:
+            status, utf, s, e = _task_span(t)
+            if status == "COMPLETED":
+                continue
+            key = utf or "__none__"
+            r = row(key, labels.get(utf, utf) if utf else "Ikke tildelt")
+            r["total"] += 1
+            sdt = datetime.date.fromisoformat(s); edt = datetime.date.fromisoformat(e)
+            for i, w in enumerate(wstarts):
+                if sdt < w + datetime.timedelta(days=7) and edt > w:
+                    r["weeks"][i] += 1
+    return wstarts, people
+
+
+def _load_cls(n):
+    return "free" if n == 0 else "ok" if n <= 2 else "busy" if n <= 4 else "full"
+
+def render_resource():
+    wstarts, people = build_resource(10)
+    # sorter: navngitte alfabetisk, "Ikke tildelt" nederst
+    items = sorted(people.items(), key=lambda kv: (kv[0] == "__none__", kv[1]["label"].lower()))
+    ledige = [p["label"] for k, p in items if k != "__none__" and p["weeks"][0] == 0]
+    fulle = [p["label"] for k, p in items if k != "__none__" and p["weeks"][0] >= 3]
+    # header
+    ths = ['<th class="nm">Utførende</th><th>Denne uka</th><th>Aktive</th>']
+    for i, w in enumerate(wstarts):
+        uke = w.isocalendar()[1]
+        cls = ' class="wk0"' if i == 0 else ''
+        ths.append(f'<th{cls}>Uke {uke}<br><span class="d">{w.strftime("%d.%m")}</span></th>')
+    rows = []
+    for k, p in items:
+        wk0 = p["weeks"][0]
+        chip = ('<span class="chip free">Ledig</span>' if wk0 == 0 else
+                '<span class="chip full">Full</span>' if wk0 >= 3 else
+                '<span class="chip ok">Opptatt</span>')
+        cells = [f'<td class="nm">{html.escape(p["label"])}</td>', f'<td>{chip}</td>',
+                 f'<td class="tot">{p["total"]}</td>']
+        for i, n in enumerate(p["weeks"]):
+            w0 = ' wk0' if i == 0 else ''
+            cells.append(f'<td class="ld {_load_cls(n)}{w0}">{n or ""}</td>')
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    return RES_PAGE \
+        .replace("__TS__", time.strftime("%H:%M:%S")) \
+        .replace("__LEDIGE__", ", ".join(ledige) or "ingen") \
+        .replace("__FULLE__", ", ".join(fulle) or "ingen") \
+        .replace("__HEAD__", "".join(ths)) \
+        .replace("__ROWS__", "".join(rows))
+
+
+RES_PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BRE · Ressurs</title>
+<style>
+ *{box-sizing:border-box} body{margin:0;font-family:'Segoe UI',Verdana,Arial,sans-serif;color:#1b2b36;background:#f4f7f9}
+ header{background:#005689;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+ header h1{font-size:18px;margin:0;font-weight:700} header .meta{font-size:12px;color:#bfe0f2}
+ header a{color:#fff;background:rgba(255,255,255,.15);padding:6px 12px;border-radius:6px;text-decoration:none;font-size:13px}
+ .summary{padding:12px 20px;display:flex;gap:24px;flex-wrap:wrap;font-size:14px}
+ .summary b{color:#005689}
+ .wrap{padding:0 20px 30px} table{border-collapse:collapse;width:100%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+ th,td{border:1px solid #e2e9ee;padding:8px 6px;text-align:center;font-size:13px}
+ th{background:#005689;color:#fff;font-weight:600;font-size:12px} th .d{font-weight:400;color:#bfe0f2;font-size:11px}
+ td.nm,th.nm{text-align:left;white-space:nowrap;font-weight:600;position:sticky;left:0;background:#fff;z-index:1}
+ th.nm{background:#005689}
+ td.tot{font-weight:700;color:#005689} td.ld{font-weight:600}
+ .wk0{outline:2px solid #FAE100;outline-offset:-2px}
+ .free{background:#eef7f0;color:#9bb0bf} .ok{background:#eaf6fd;color:#0092D2}
+ .busy{background:#fff3d6;color:#a9791b} .full{background:#fde8e4;color:#E0533A}
+ .chip{padding:2px 9px;border-radius:11px;font-size:12px;font-weight:600}
+ .chip.free{background:#e4f5e9;color:#2EA04B} .chip.ok{background:#eaf6fd;color:#0092D2} .chip.full{background:#fde8e4;color:#E0533A}
+ .legend{padding:10px 20px;font-size:12px;color:#5b6b78;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+ .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px;vertical-align:-1px}
+</style></head><body>
+<header>
+ <h1>BRE · Ressursoversikt</h1>
+ <span class="meta">oppdatert __TS__ · belegg = antall aktive oppgaver som overlapper uka</span>
+ <span style="flex:1"></span>
+ <a href="/">← Gantt</a><a href="/ressurs">↻ Oppdater</a>
+</header>
+<div class="summary">
+ <div>🟢 <b>Ledige denne uka:</b> __LEDIGE__</div>
+ <div>🔴 <b>Fullbooket denne uka (3+):</b> __FULLE__</div>
+</div>
+<div class="legend">
+ <span><i class="free"></i>Ledig (0)</span>
+ <span><i class="ok"></i>Opptatt (1–2)</span>
+ <span><i class="busy"></i>Travelt (3–4)</span>
+ <span><i class="full"></i>Fullbooket (5+)</span>
+ <span>· gul ramme = inneværende uke</span>
+</div>
+<div class="wrap"><table><thead><tr>__HEAD__</tr></thead><tbody>__ROWS__</tbody></table></div>
+</body></html>"""
 
 PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -276,7 +415,9 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  <button data-vm="Month">Måned</button>
  <button id="today">📍 I dag</button>
  <button id="undo" disabled style="opacity:.5">↶ Angre</button>
+ <button id="newtask" style="background:#2EA04B;color:#fff">＋ Ny oppgave</button>
  <a href="__TOGGLE__">__TOGGLELBL__</a>
+ <a href="/ressurs">👥 Ressurs</a>
  <a href="?">↻ Oppdater</a>
 </header>
 <div class="legend">
@@ -299,6 +440,69 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
  var OWNERS = __OWNERS__;   // [{id,name}] alle HubSpot-eiere
  var UTFOPTS = __UTFOPTS__; // [{value,label}] utførende-valg
  var UTFLBL = {}; UTFOPTS.forEach(function(o){UTFLBL[o.value]=o.label;});
+ var PROJECTS = __PROJECTS__; // [{id,name}] alle prosjekter
+ var FAGOPTS = __FAGOPTS__;   // [{value,label}] fagområder
+ var PRIOS = [{value:'NONE',label:'Ingen'},{value:'LOW',label:'Lav'},{value:'MEDIUM',label:'Middels'},{value:'HIGH',label:'Høy'}];
+ var STATUSOPTS = [{value:'NOT_STARTED',label:'Ikke startet'},{value:'IN_PROGRESS',label:'Pågår'},{value:'WAITING',label:'Venter'},{value:'DEFERRED',label:'Utsatt'},{value:'COMPLETED',label:'Fullført'}];
+ // «＋ Ny oppgave»-skjema (mest mulig nedtrekk)
+ function todayISO(){ var d=new Date(); function p(n){return ('0'+n).slice(-2);} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+ function selField(label, opts, opt){
+   var wrap=document.createElement('label'); wrap.style.cssText='display:block;font-size:12px;color:#5b6b78;margin:10px 0 0';
+   wrap.textContent=label;
+   var sel=document.createElement('select'); sel.style.cssText='width:100%;margin-top:3px;padding:7px;border:1px solid #cdd8df;border-radius:6px;font-size:13px;background:#fff';
+   if(opt&&opt.blank){ var o0=document.createElement('option'); o0.value=''; o0.textContent=opt.blank; sel.appendChild(o0); }
+   opts.forEach(function(o){ var op=document.createElement('option'); op.value=(o.value!==undefined?o.value:o.id); op.textContent=o.label!==undefined?o.label:o.name; if(opt&&String(opt.def)===String(op.value)) op.selected=true; sel.appendChild(op); });
+   wrap.appendChild(sel); wrap._sel=sel; return wrap;
+ }
+ function inField(label, type, val){
+   var wrap=document.createElement('label'); wrap.style.cssText='display:block;font-size:12px;color:#5b6b78;margin:10px 0 0';
+   wrap.textContent=label;
+   var inp=document.createElement('input'); inp.type=type||'text'; if(val) inp.value=val;
+   inp.style.cssText='width:100%;margin-top:3px;padding:7px;box-sizing:border-box;border:1px solid #cdd8df;border-radius:6px;font-size:13px';
+   wrap.appendChild(inp); wrap._inp=inp; return wrap;
+ }
+ function openNewTask(){
+   var ov=document.createElement('div');
+   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center';
+   var box=document.createElement('div');
+   box.style.cssText='background:#fff;width:min(560px,94vw);max-height:92vh;overflow:auto;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:18px 20px';
+   box.onclick=function(e){e.stopPropagation();};
+   var h=document.createElement('div'); h.textContent='Ny oppgave'; h.style.cssText='font-weight:700;color:#005689;font-size:16px;margin-bottom:4px';
+   var fProj=selField('Prosjekt *', PROJECTS, {blank:'— velg prosjekt —'});
+   var fName=inField('Oppgavenavn *','text');
+   var fFag=selField('Fagområde', FAGOPTS, {blank:'— ingen —'});
+   var fStat=selField('Status', STATUSOPTS, {def:'NOT_STARTED'});
+   var fPrio=selField('Prioritet', PRIOS, {def:'NONE'});
+   var fUtf=selField('Utførende', UTFOPTS, {blank:'— ingen —'});
+   var fOwn=selField('Eier', OWNERS, {blank:'— ingen —'});
+   var fStart=inField('Startdato','date');
+   var fDue=inField('Forfallsdato','date', todayISO());
+   var bar=document.createElement('div'); bar.style.cssText='display:flex;gap:8px;justify-content:flex-end;margin-top:16px';
+   var cancel=document.createElement('button'); cancel.textContent='Avbryt';
+   cancel.style.cssText='background:#eef3f6;color:#33424d;border:0;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px';
+   var ok=document.createElement('button'); ok.textContent='Opprett oppgave';
+   ok.style.cssText='background:#2EA04B;color:#fff;border:0;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px';
+   bar.appendChild(cancel); bar.appendChild(ok);
+   [h,fProj,fName,fFag,fStat,fPrio,fUtf,fOwn,fStart,fDue,bar].forEach(function(x){box.appendChild(x);});
+   ov.appendChild(box); document.body.appendChild(ov);
+   function close(){ if(ov.parentNode) document.body.removeChild(ov); }
+   ov.onclick=close; cancel.onclick=close; fProj._sel.focus();
+   ok.onclick=function(){
+     var project=fProj._sel.value, subject=fName._inp.value.trim();
+     if(!project){ toast('✖ Velg prosjekt',false); fProj._sel.focus(); return; }
+     if(!subject){ toast('✖ Skriv oppgavenavn',false); fName._inp.focus(); return; }
+     ok.disabled=true; ok.textContent='Oppretter…';
+     fetch('/newtask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+       project:project, subject:subject, fag:fFag._sel.value, status:fStat._sel.value,
+       prio:fPrio._sel.value, utf:fUtf._sel.value, ownerid:fOwn._sel.value,
+       start:fStart._inp.value, date:fDue._inp.value })})
+       .then(function(r){return r.json();}).then(function(j){
+         if(j.ok){ toast('✔ Oppgave opprettet',true); setTimeout(function(){location.reload();},700); }
+         else { toast('✖ '+(j.error||'feil'),false); ok.disabled=false; ok.textContent='Opprett oppgave'; }
+       }).catch(function(e){ toast('✖ '+e,false); ok.disabled=false; ok.textContent='Opprett oppgave'; });
+   };
+ }
+ (function(){ var b=document.getElementById('newtask'); if(b) b.onclick=openNewTask; })();
  function fmtDate(x){var d=(x instanceof Date)?x:new Date(x);
    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
  function addDays(ds,n){var d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+n);return fmtDate(d);}
@@ -430,6 +634,8 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
    else if(it.type==='owner') body.ownerid=it.prev;
    else if(it.type==='prio') body.prio=it.prev;
    else if(it.type==='utf') body.utf=it.prev;
+   else if(it.type==='rename') body.subject=it.prev;
+   else if(it.type==='note') body.note=it.prev;
    else body.status=it.prev;
    this.disabled=true;
    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
@@ -529,16 +735,125 @@ PAGE = """<!doctype html><html lang="no"><head><meta charset="utf-8">
      d.className='t'+(t.overdue?' overdue':'');
      var dot=document.createElement('span'); dot.className='dot';
      dot.style.background = (t.progress===100) ? '#9bb0bf' : (COL[t.fag]||'#0092D2');
-     var s=document.createElement('span'); s.className='subj';
-     s.textContent=(t.overdue?'⚠ ':'')+t.name.trim();
-     s.title=t.name.trim()+(t.overdue?'  ·  Forfalt: '+t.due:'');
+     var s=subjEl(t);
      if(t.hsid){ d.appendChild(prioEl(t)); }   // prioritet helt til venstre
      d.appendChild(dot); d.appendChild(s);
-     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(utfEl(t)); }
+     if(t.hsid){ d.appendChild(statusEl(t)); d.appendChild(utfEl(t)); d.appendChild(noteEl(t)); }
    }
-   d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio,.utf')) return; jump(id);};})(t.id);
+   d.onclick=(function(id){return function(ev){ if(ev.target.closest('.own,.ownsel,.st,.stsel,.prio,.utf,.note')) return; jump(id);};})(t.id);
    side.appendChild(d);
  });
+
+ // Oppgavenavn: dobbeltklikk → rediger → lagre til HubSpot
+ function subjEl(t){
+   var s=document.createElement('span'); s.className='subj';
+   s.textContent=(t.overdue?'⚠ ':'')+t.name.trim();
+   s.title=t.name.trim()+(t.hsid?'  ·  dobbeltklikk for å endre navn':'')+(t.overdue?'  ·  Forfalt: '+t.due:'');
+   if(t.hsid){ s.ondblclick=function(e){e.stopPropagation();editName(t,s);}; }
+   return s;
+ }
+ function editName(t, s){
+   var inp=document.createElement('input'); inp.type='text'; inp.value=t.name.trim();
+   inp.className='subjin'; inp.style.cssText='font:inherit;width:100%;box-sizing:border-box;padding:1px 4px';
+   s.replaceWith(inp); inp.focus(); inp.select();
+   inp.onclick=function(e){e.stopPropagation();};
+   var handled=false;
+   function done(save){
+     if(handled) return; handled=true;
+     var nv=inp.value.trim(), old=t.name.trim();
+     if(save && nv && nv!==old){
+       fetch('/rename',{method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({hsid:t.hsid,subject:nv})})
+         .then(function(r){return r.json();}).then(function(j){
+           if(j.ok){ t.name='   '+nv; pushUndo({type:'rename',hsid:t.hsid,prev:old,label:nv});
+             toast('✔ Navn oppdatert',true); }
+           else { toast('✖ '+(j.error||'feil'),false); }
+           inp.replaceWith(subjEl(t));
+         }).catch(function(e){toast('✖ '+e,false); inp.replaceWith(subjEl(t));});
+     } else { inp.replaceWith(subjEl(t)); }
+   }
+   inp.onkeydown=function(e){ if(e.key==='Enter'){e.preventDefault();done(true);} else if(e.key==='Escape'){done(false);} };
+   inp.onblur=function(){done(true);};
+ }
+
+ // Oppgavemerknad (hs_task_body): 📝 → pop-up med redigerbar merknad (statuslogg)
+ function noteEl(t){
+   var el=document.createElement('span'); el.className='note';
+   var has=!!(t.note&&String(t.note).trim());
+   el.textContent='📝'; el.style.cssText='cursor:pointer;margin-left:6px;font-size:13px;opacity:'+(has?'1':'.35');
+   el.title=(has?'Merknad finnes':'Ingen merknad')+' — klikk for å se/redigere';
+   el.onclick=function(e){e.stopPropagation();openNoteModal(t,el);};
+   return el;
+ }
+ function openNoteModal(t, el){
+   var NL=String.fromCharCode(10);
+   function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
+   var ov=document.createElement('div');
+   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center';
+   var box=document.createElement('div');
+   box.style.cssText='background:#fff;width:min(600px,94vw);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:18px 20px';
+   box.onclick=function(e){e.stopPropagation();};
+   var h=document.createElement('div'); h.textContent='Merknad — '+t.name.trim();
+   h.style.cssText='font-weight:700;color:#005689;font-size:15px;margin-bottom:12px';
+   var log=document.createElement('div');
+   log.style.cssText='max-height:240px;overflow:auto;border:1px solid #e2e9ee;border-radius:8px;background:#f7fafc';
+   function renderLog(){
+     var n=(t.note||'').toString().trim();
+     if(!n){ log.innerHTML='<div style="padding:14px;color:#8a9aa6;font:13px Segoe UI,Verdana,Arial">Ingen loggføringer ennå.</div>'; return; }
+     log.innerHTML=n;
+     Array.prototype.forEach.call(log.querySelectorAll('p'),function(p){
+       if(!p.textContent.trim()){ p.style.display='none'; return; }
+       p.style.margin='0'; p.style.padding='8px 12px'; p.style.borderBottom='1px solid #e9eef2';
+       p.style.font='13px/1.5 Segoe UI,Verdana,Arial'; p.style.color='#1b2b36';
+     });
+     Array.prototype.forEach.call(log.querySelectorAll('strong,b'),function(b){ b.style.color='#005689'; });
+   }
+   renderLog();
+   var ta=document.createElement('textarea'); ta.placeholder='Skriv ny statuslinje …';
+   ta.style.cssText='width:100%;height:64px;box-sizing:border-box;margin-top:12px;font:13px/1.4 Segoe UI,Verdana,Arial;padding:8px;border:1px solid #cdd8df;border-radius:6px;resize:vertical';
+   var tip=document.createElement('div'); tip.textContent='Ny linje legges øverst i loggen, stemplet med dato og klokkeslett.';
+   tip.style.cssText='font-size:11px;color:#8a9aa6;margin:6px 0 10px';
+   var bar=document.createElement('div'); bar.style.cssText='display:flex;gap:8px;justify-content:flex-end;align-items:center';
+   var edit=document.createElement('button'); edit.textContent='✎ Rediger hele';
+   edit.style.cssText='background:none;color:#0092D2;border:0;cursor:pointer;font-size:12.5px;margin-right:auto;text-decoration:underline';
+   var cancel=document.createElement('button'); cancel.textContent='Lukk';
+   cancel.style.cssText='background:#eef3f6;color:#33424d;border:0;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px';
+   var add=document.createElement('button'); add.textContent='Legg til i logg';
+   add.style.cssText='background:#0092D2;color:#fff;border:0;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:13px';
+   bar.appendChild(edit); bar.appendChild(cancel); bar.appendChild(add);
+   box.appendChild(h); box.appendChild(log); box.appendChild(ta); box.appendChild(tip); box.appendChild(bar); ov.appendChild(box);
+   document.body.appendChild(ov); ta.focus();
+   function close(){ if(ov.parentNode) document.body.removeChild(ov); }
+   ov.onclick=close; cancel.onclick=close;
+   function two(n){ return ('0'+n).slice(-2); }
+   function stampStr(){ var d=new Date();
+     return two(d.getDate())+'.'+two(d.getMonth()+1)+'.'+d.getFullYear()+' '+two(d.getHours())+':'+two(d.getMinutes()); }
+   function persist(newNote){
+     var old=t.note||'';
+     add.disabled=true; add.textContent='Lagrer…';
+     fetch('/note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hsid:t.hsid,note:newNote})})
+       .then(function(r){return r.json();}).then(function(j){
+         if(j.ok){ pushUndo({type:'note',hsid:t.hsid,prev:old,label:t.name.trim()}); t.note=newNote;
+           el.replaceWith(noteEl(t)); toast('✔ Merknad lagret',true); ta.value=''; renderLog(); }
+         else { toast('✖ '+(j.error||'feil'),false); }
+         add.disabled=false; add.textContent='Legg til i logg';
+       }).catch(function(e){toast('✖ '+e,false); add.disabled=false; add.textContent='Legg til i logg';});
+   }
+   add.onclick=function(){
+     var txt=ta.value.trim(); if(!txt){ ta.focus(); return; }
+     var body=esc(txt).split(NL).join('<br>');
+     var entry='<p style="margin:0"><strong>'+stampStr()+'</strong> — '+body+'</p>';
+     persist(entry+(t.note||''));
+   };
+   edit.onclick=function(){
+     var raw=document.createElement('textarea'); raw.value=(t.note||'');
+     raw.style.cssText='width:100%;height:240px;box-sizing:border-box;font:12px/1.45 monospace;padding:8px;border:1px solid #cdd8df;border-radius:6px;resize:vertical';
+     log.replaceWith(raw); ta.style.display='none';
+     tip.textContent='Redigerer rå merknad (HTML). «Lagre hele» overskriver alt.';
+     edit.style.display='none'; add.textContent='Lagre hele';
+     add.onclick=function(){ persist(raw.value); };
+   };
+ }
 
  // Eier-visning + klikk → nedtrekk med alle eiere → lagre til HubSpot
  function ownerEl(t){
@@ -667,11 +982,40 @@ class H(BaseHTTPRequestHandler):
         if not self._authed():
             return
         route = self.path.split("?")[0]
-        if route not in ("/move", "/owner", "/status", "/prio", "/utforende"):
+        if route not in ("/move", "/owner", "/status", "/prio", "/utforende", "/rename", "/note", "/newtask"):
             self._json(404, {"ok": False, "error": "ukjent endepunkt"}); return
         try:
             n = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(n).decode() or "{}")
+            if route == "/newtask":
+                subject = str(payload.get("subject") or "").strip()
+                project = str(payload.get("project") or "").strip()
+                if not subject or not project:
+                    self._json(400, {"ok": False, "error": "mangler oppgavenavn eller prosjekt"}); return
+                due = str(payload.get("date") or "").strip()[:10]
+                if len(due) != 10:
+                    due = datetime.date.today().isoformat()
+                status = str(payload.get("status") or "NOT_STARTED").strip()
+                if status not in ("NOT_STARTED", "IN_PROGRESS", "WAITING", "DEFERRED", "COMPLETED"):
+                    status = "NOT_STARTED"
+                props = {"hs_task_subject": subject, "hs_timestamp": due + "T12:00:00Z",
+                         "hs_task_type": "TODO", "hs_task_status": status}
+                prio = str(payload.get("prio") or "").strip()
+                if prio in ("LOW", "MEDIUM", "HIGH"): props["hs_task_priority"] = prio
+                fag = str(payload.get("fag") or "").strip()
+                if fag: props["bre_fagomrade"] = fag
+                utf = str(payload.get("utf") or "").strip()
+                if utf and utf in {o["value"] for o in utf_options()}: props["bre_utforende"] = utf
+                ownerid = str(payload.get("ownerid") or "").strip()
+                if ownerid: props["hubspot_owner_id"] = ownerid
+                sd = str(payload.get("start") or "").strip()[:10]
+                if len(sd) == 10: props["bre_start_date"] = sd
+                created = send("POST", "/crm/v3/objects/tasks", {"properties": props})
+                tid = created.get("id")
+                send("PUT", f"/crm/v4/objects/tasks/{tid}/associations/default/0-970/{project}")
+                _cache["t"] = 0  # tving ny innhenting så oppgaven vises
+                self._json(200, {"ok": True, "hsid": tid})
+                return
             hsid = str(payload.get("hsid") or "").strip()
             if not hsid:
                 self._json(400, {"ok": False, "error": "mangler hsid"}); return
@@ -715,6 +1059,19 @@ class H(BaseHTTPRequestHandler):
                 patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"bre_utforende": utf}})
                 remember_override(hsid, {"utf": utf})
                 self._json(200, {"ok": True, "hsid": hsid, "utf": utf})
+            elif route == "/rename":
+                subject = str(payload.get("subject") or "").strip()
+                if not subject:
+                    self._json(400, {"ok": False, "error": "tomt navn"}); return
+                patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hs_task_subject": subject}})
+                remember_override(hsid, {"subject": subject})
+                self._json(200, {"ok": True, "hsid": hsid, "subject": subject})
+            elif route == "/note":
+                note = payload.get("note")
+                note = "" if note is None else str(note)
+                patch(f"/crm/v3/objects/tasks/{hsid}", {"properties": {"hs_task_body": note}})
+                remember_override(hsid, {"note": note})
+                self._json(200, {"ok": True, "hsid": hsid, "note": note})
         except urllib.error.HTTPError as e:
             self._json(502, {"ok": False, "error": f"HubSpot {e.code}: {e.read().decode()[:120]}"})
         except Exception as e:
@@ -726,6 +1083,16 @@ class H(BaseHTTPRequestHandler):
         if not self._authed():
             return
         from urllib.parse import urlparse, parse_qs, urlencode
+        if urlparse(self.path).path == "/ressurs":
+            try:
+                b = render_resource().encode()
+                self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(b))); self.end_headers(); self.wfile.write(b)
+            except Exception as e:
+                msg = f"Feil: {html.escape(str(e))}".encode()
+                self.send_response(500); self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.end_headers(); self.wfile.write(msg)
+            return
         q = parse_qs(urlparse(self.path).query)
         show_all = q.get("all", ["0"])[0] == "1"
         fag = q.get("fag", [""])[0]
@@ -741,6 +1108,11 @@ class H(BaseHTTPRequestHandler):
             owners_list = sorted(
                 [{"id": oid, "name": nm} for oid, nm in (_cache.get("owners") or {}).items() if nm],
                 key=lambda o: o["name"].lower())
+            pinfo, _bp = fetch()
+            projects_list = sorted(
+                [{"id": pid, "name": pr.get("hs_name") or pid} for pid, pr in pinfo.items()],
+                key=lambda p: p["name"].lower())
+            fag_list = [{"value": v, "label": lbl} for v, lbl in FAG]
             # fagområde-filter-lenker (bevarer all= og utf=)
             links = [f'<a href="{url(fag="")}" class="{"active" if not fag else ""}">Alle</a>']
             for v, lbl in FAG:
@@ -755,6 +1127,8 @@ class H(BaseHTTPRequestHandler):
             body = PAGE.replace("__DATA__", json.dumps(gtasks, ensure_ascii=False)) \
                 .replace("__OWNERS__", json.dumps(owners_list, ensure_ascii=False)) \
                 .replace("__UTFOPTS__", json.dumps(utf_options(), ensure_ascii=False)) \
+                .replace("__PROJECTS__", json.dumps(projects_list, ensure_ascii=False)) \
+                .replace("__FAGOPTS__", json.dumps(fag_list, ensure_ascii=False)) \
                 .replace("__COUNT__", f"{len(gtasks)} rader") \
                 .replace("__TS__", time.strftime("%H:%M:%S")) \
                 .replace("__TOGGLE__", toggle) \
